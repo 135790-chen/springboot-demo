@@ -1,0 +1,27 @@
+jwt:
+  secret: ${JWT_SECRET:demo-jwt-secret-key-for-local-dev-only-2024}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+admin:
+  invite-code: ${ADMIN_INVITE_CODE:admin888}
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss} [%X{traceId:-}] %-5level %logger{20} - %msg%n"
+  file:
+    path: ./logs
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://${ZIPKIN_HOST:localhost}:${ZIPKIN_PORT:9411}/api/v2/spans
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

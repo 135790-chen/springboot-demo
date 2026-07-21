@@ -1,0 +1,15 @@
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    enable-security: true
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: 认证服务
+        url: /v3/api-docs-auth
+      - name: 学生服务
+        url: /v3/api-docs-student
+      - name: 消息服务
+        url: /v3/api-docs-message

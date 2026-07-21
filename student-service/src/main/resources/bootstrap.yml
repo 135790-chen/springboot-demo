@@ -1,0 +1,46 @@
+server:
+  port: ${STUDENT_SERVICE_PORT:8082}
+spring:
+  application:
+    name: student-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: http://${NACOS_SERVICE_HOST:localhost}:${NACOS_SERVICE_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:local-dev}
+        username: ${NACOS_SERVICE_USERNAME:nacos}
+        password: ${NACOS_SERVICE_PASSWORD:nacos}
+        fail-fast: false
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        namespace: ${spring.cloud.nacos.discovery.namespace}
+        username: ${NACOS_SERVICE_USERNAME:nacos}
+        password: ${NACOS_SERVICE_PASSWORD:nacos}
+        file-extension: yaml
+        fail-fast: false
+  flyway:
+    baseline-on-migrate: true
+  config:
+    import:
+      - optional:nacos:shared-config.yaml?group=DEFAULT_GROUP
+      - optional:nacos:student-service.yaml?group=DEFAULT_GROUP
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss} [%X{traceId:-}] %-5level %logger{20} - %msg%n"
+  file:
+    path: ./logs

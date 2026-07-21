@@ -1,0 +1,110 @@
+services:
+  # ========== 基础设施 ==========
+  mysql:
+    image: mysql:8.0
+    container_name: demo-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: demo-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: demo-nacos
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+    volumes:
+      - nacos-data:/home/nacos/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: demo-zipkin
+    ports:
+      - "9411:9411"
+
+  # ========== 应用服务 ==========
+  auth-service:
+    build: ./auth-service
+    container_name: demo-auth
+    ports:
+      - "8081:8081"
+    environment:
+      NACOS_SERVICE_HOST: nacos
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      ZIPKIN_HOST: zipkin
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  student-service:
+    build: ./student-service
+    container_name: demo-student
+    ports:
+      - "8082:8082"
+    environment:
+      NACOS_SERVICE_HOST: nacos
+      DB_HOST: mysql
+      ZIPKIN_HOST: zipkin
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  gateway:
+    build: ./gateway
+    container_name: demo-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      NACOS_SERVICE_HOST: nacos
+      ZIPKIN_HOST: zipkin
+    depends_on:
+      nacos:
+        condition: service_started
+
+  message-service:
+    build: ./message-service
+    container_name: demo-message
+    ports:
+      - "8083:8083"
+    environment:
+      NACOS_SERVICE_HOST: nacos
+      ZIPKIN_HOST: zipkin
+    depends_on:
+      nacos:
+        condition: service_started
+
+volumes:
+  mysql-data:
+  nacos-data:

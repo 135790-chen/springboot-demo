@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>教育管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { text-align: center; color: #1890ff; margin-bottom: 20px; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h3 { color: #333; margin-bottom: 12px; border-bottom: 2px solid #1890ff; padding-bottom: 8px; }
+        input, button, select { padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+        input, select { border: 1px solid #d9d9d9; margin: 4px; }
+        button { background: #1890ff; color: white; border: none; cursor: pointer; margin: 4px; }
+        button:hover { background: #40a9ff; }
+        button.danger { background: #ff4d4f; }
+        button.danger:hover { background: #ff7875; }
+        button.success { background: #52c41a; }
+        button.success:hover { background: #73d13d; }
+        button.gray { background: #722ed1; }
+        button.gray:hover { background: #9254de; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #e8e8e8; padding: 6px 10px; text-align: left; font-size: 13px; white-space: nowrap; }
+        th { background: #fafafa; font-weight: 600; }
+        tbody tr { cursor: pointer; transition: background 0.2s; }
+        tbody tr:hover { background: #e6f7ff; }
+        tbody tr.selected { background: #bae7ff; }
+        .hint { font-size: 12px; color: #999; margin-left: 8px; }
+        .tab-bar { display: flex; gap: 0; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: #e8e8e8; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 14px; transition: background 0.2s; }
+        .tab:hover { background: #d9d9d9; }
+        .tab.active { background: #1890ff; color: white; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .pagination-bar { margin-top: 12px; text-align: center; }
+        .pagination-bar span { margin: 0 12px; font-size: 14px; }
+        .result-box { background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 13px; max-height: 200px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin-top: 10px; }
+        #tokenBar { padding: 8px 12px; background: #e6f7ff; border-radius: 4px; margin-bottom: 16px; display: none; font-size: 13px; color: #333; }
+        #tokenBar .role-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; color: white; font-size: 12px; margin-left: 8px; }
+        .role-admin { background: #ff4d4f; }
+        .role-student { background: #52c41a; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📚 教育管理系统 <a href="http://localhost:9411" target="_blank" style="font-size:13px;color:#722ed1;text-decoration:none;margin-left:16px;">🔗 链路追踪</a></h1>
+
+    <!-- 登录 -->
+    <div class="card">
+        <h3>🔐 登录 / 注册</h3>
+        <div class="row">
+            <input id="loginUser" placeholder="用户名" value="demo">
+            <input id="loginPass" placeholder="密码" value="123456" type="password">
+            <input id="inviteCode" placeholder="管理员邀请码（选填）" style="width:160px">
+            <button onclick="login()">登录</button>
+            <button class="success" onclick="register()">注册</button>
+            <button class="danger" onclick="logout()" id="logoutBtn" style="display:none">登出</button>
+        </div>
+        <div id="tokenBar"></div>
+    </div>
+
+    <!-- 数据统计概览 -->
+    <div class="card" id="statCard" style="display:none">
+        <h3>📊 数据概览 <button class="gray" onclick="loadStats()" style="font-size:12px;padding:4px 10px;">刷新</button></h3>
+        <div class="row" id="statContent" style="gap:24px;justify-content:space-around;font-size:14px;"></div>
+    </div>
+
+    <!-- 标签导航 -->
+    <div class="tab-bar" id="tabBar">
+        <div class="tab active" data-tab="student" onclick="switchTab('student')">🎓 学生管理</div>
+        <div class="tab" data-tab="class" onclick="switchTab('class')">🏫 班级管理</div>
+        <div class="tab" data-tab="teacher" onclick="switchTab('teacher')">👨‍🏫 教师管理</div>
+        <div class="tab" data-tab="course" onclick="switchTab('course')">📖 课程管理</div>
+        <div class="tab admin-tab" data-tab="enroll" onclick="switchTab('enroll')">📝 选课管理</div>
+        <div class="tab admin-tab" data-tab="kafka" onclick="switchTab('kafka')">📨 Kafka</div>
+        <div class="tab" data-tab="me" onclick="switchTab('me')">👤 我的信息</div>
+    </div>
+
+    <!-- ==================== 学生管理 ==================== -->
+    <div class="tab-panel active" id="panel-student">
+        <div class="card">
+            <h3>🎓 学生查询</h3>
+            <div class="row">
+                <input id="s_searchName" placeholder="姓名">
+                <input id="s_searchNo" placeholder="学号">
+                <input id="s_searchClassId" placeholder="班级ID" style="width:80px">
+                <select id="s_searchStatus"><option value="">全部状态</option><option value="1">在读</option><option value="2">休学</option><option value="3">毕业</option><option value="0">退学</option></select>
+                <button onclick="loadStudents(1)">查询</button>
+                <button class="gray" onclick="clearStudentSearch(); loadStudents(1);">查全部</button>
+            </div>
+            <table id="studentTable" style="display:none">
+                <thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>班级</th><th>年级</th><th>入学年份</th><th>状态</th><th>电话</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="s_pagination" style="display:none">
+                <button onclick="loadStudents(1)">首页</button>
+                <button onclick="loadStudents(s_page-1)" id="s_prev">←</button>
+                <span id="s_pageInfo"></span>
+                <button onclick="loadStudents(s_page+1)" id="s_next">→</button>
+                <button onclick="loadStudents(s_total)">末页</button>
+            </div>
+        </div>
+        <div class="card admin-only">
+            <h3>✏️ 新增 / 修改学生 <span class="hint">管理员专用</span></h3>
+            <span id="s_selected" style="display:none; font-weight:bold; color:#1890ff"></span>
+            <div class="row">
+                <input id="s_name" placeholder="姓名 *">
+                <input id="s_no" placeholder="学号">
+                <input id="s_birthday" placeholder="生日(如2002-05-15)" style="width:160px">
+                <select id="s_gender"><option value="0">未知</option><option value="1">男</option><option value="2">女</option></select>
+                <select id="s_grade"><option value="">年级</option><option value="大一">大一</option><option value="大二">大二</option><option value="大三">大三</option><option value="大四">大四</option></select>
+            </div>
+            <div class="row" style="margin-top:4px">
+                <input id="s_email" placeholder="邮箱">
+                <input id="s_phone" placeholder="电话">
+                <input id="s_classId" placeholder="班级ID" style="width:80px">
+                <input id="s_enrollmentYear" placeholder="入学年份" style="width:80px">
+                <select id="s_status"><option value="1">在读</option><option value="2">休学</option><option value="3">毕业</option><option value="0">退学</option></select>
+            </div>
+            <div class="row" style="margin-top:8px">
+                <button class="success" onclick="addStudent()">新增</button>
+                <button onclick="updateStudent()">修改</button>
+                <button class="danger" onclick="deleteStudent()">逻辑删除</button>
+                <button class="gray" onclick="clearStudentForm()">清空</button>
+            </div>
+        </div>
+        <!-- 学生选课列表 — 直接在学生管理页内查看 -->
+        <div class="card">
+            <h3>📋 已选课程 <span class="hint">先点击上方学生行，再点查询</span></h3>
+            <div class="row">
+                <span id="s_selected_course" style="color:#999">未选中学生</span>
+                <button onclick="loadStudentCoursesPanel(1)">查询该生选课</button>
+            </div>
+            <table id="studentCoursePanelTable" style="display:none">
+                <thead><tr><th>relId</th><th>课程编码</th><th>课程名称</th><th>学分</th><th>类型</th><th>教师</th><th>学期</th><th>成绩</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="sc_pagination" style="display:none">
+                <button onclick="loadStudentCoursesPanel(1)">首页</button>
+                <button onclick="loadStudentCoursesPanel(sc_page-1)" id="sc_prev">←</button>
+                <span id="sc_pageInfo"></span>
+                <button onclick="loadStudentCoursesPanel(sc_page+1)" id="sc_next">→</button>
+                <button onclick="loadStudentCoursesPanel(sc_total)">末页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 班级管理 ==================== -->
+    <div class="tab-panel" id="panel-class">
+        <div class="card">
+            <h3>🏫 班级查询</h3>
+            <div class="row">
+                <input id="c_searchName" placeholder="班级名称">
+                <input id="c_searchCode" placeholder="班级编码">
+                <input id="c_searchGrade" placeholder="年级">
+                <select id="c_searchStatus"><option value="">全部状态</option><option value="1">正常</option><option value="0">禁用</option></select>
+                <button onclick="loadClasses(1)">查询</button>
+                <button class="gray" onclick="clearClassSearch(); loadClasses(1);">查全部</button>
+            </div>
+            <table id="classTable" style="display:none">
+                <thead><tr><th>编码</th><th>名称</th><th>年级</th><th>专业</th><th>排序</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="c_pagination" style="display:none">
+                <button onclick="loadClasses(1)">首页</button>
+                <button onclick="loadClasses(c_page-1)" id="c_prev">←</button>
+                <span id="c_pageInfo"></span>
+                <button onclick="loadClasses(c_page+1)" id="c_next">→</button>
+                <button onclick="loadClasses(c_total)">末页</button>
+            </div>
+        </div>
+        <div class="card admin-only">
+            <h3>✏️ 新增 / 修改班级 <span class="hint">管理员专用</span></h3>
+            <span id="c_selected" style="display:none; font-weight:bold; color:#1890ff"></span>
+            <div class="row">
+                <input id="c_name" placeholder="班级名称 *">
+                <input id="c_code" placeholder="班级编码 *">
+                <input id="c_grade" placeholder="年级">
+                <input id="c_major" placeholder="专业">
+                <input id="c_sort" placeholder="排序" style="width:60px" type="number">
+                <select id="c_status"><option value="1">正常</option><option value="0">禁用</option></select>
+            </div>
+            <div class="row" style="margin-top:4px">
+                <input id="c_remark" placeholder="备注" style="width:300px">
+            </div>
+            <div class="row" style="margin-top:8px">
+                <button class="success" onclick="addClass()">新增</button>
+                <button onclick="updateClass()">修改</button>
+                <button class="danger" onclick="deleteClass()">逻辑删除</button>
+                <button class="gray" onclick="clearClassForm()">清空</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 教师管理 ==================== -->
+    <div class="tab-panel" id="panel-teacher">
+        <div class="card">
+            <h3>👨‍🏫 教师查询</h3>
+            <div class="row">
+                <input id="t_searchName" placeholder="姓名">
+                <input id="t_searchNo" placeholder="工号">
+                <select id="t_searchTitle"><option value="">全部职称</option><option value="教授">教授</option><option value="副教授">副教授</option><option value="讲师">讲师</option><option value="助教">助教</option></select>
+                <select id="t_searchStatus"><option value="">全部状态</option><option value="1">在职</option><option value="0">离职</option></select>
+                <button onclick="loadTeachers(1)">查询</button>
+                <button class="gray" onclick="clearTeacherSearch(); loadTeachers(1);">查全部</button>
+            </div>
+            <table id="teacherTable" style="display:none">
+                <thead><tr><th>工号</th><th>姓名</th><th>性别</th><th>职称</th><th>电话</th><th>邮箱</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="t_pagination" style="display:none">
+                <button onclick="loadTeachers(1)">首页</button>
+                <button onclick="loadTeachers(t_page-1)" id="t_prev">←</button>
+                <span id="t_pageInfo"></span>
+                <button onclick="loadTeachers(t_page+1)" id="t_next">→</button>
+                <button onclick="loadTeachers(t_total)">末页</button>
+            </div>
+        </div>
+        <div class="card admin-only">
+            <h3>✏️ 新增 / 修改教师 <span class="hint">管理员专用</span></h3>
+            <span id="t_selected" style="display:none; font-weight:bold; color:#1890ff"></span>
+            <div class="row">
+                <input id="t_name" placeholder="姓名 *">
+                <input id="t_no" placeholder="工号">
+                <select id="t_gender"><option value="0">未知</option><option value="1">男</option><option value="2">女</option></select>
+                <select id="t_title"><option value="教授">教授</option><option value="副教授">副教授</option><option value="讲师">讲师</option><option value="助教">助教</option></select>
+                <select id="t_status"><option value="1">在职</option><option value="0">离职</option></select>
+            </div>
+            <div class="row" style="margin-top:4px">
+                <input id="t_email" placeholder="邮箱">
+                <input id="t_phone" placeholder="电话">
+                <input id="t_remark" placeholder="备注" style="width:250px">
+            </div>
+            <div class="row" style="margin-top:8px">
+                <button class="success" onclick="addTeacher()">新增</button>
+                <button onclick="updateTeacher()">修改</button>
+                <button class="danger" onclick="deleteTeacher()">逻辑删除</button>
+                <button class="gray" onclick="clearTeacherForm()">清空</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程管理 ==================== -->
+    <div class="tab-panel" id="panel-course">
+        <div class="card">
+            <h3>📖 课程查询</h3>
+            <div class="row">
+                <input id="co_searchName" placeholder="课程名称">
+                <input id="co_searchCode" placeholder="课程编码">
+                <select id="co_searchType"><option value="">全部类型</option><option value="required">必修</option><option value="elective">选修</option></select>
+                <select id="co_searchStatus"><option value="">全部状态</option><option value="1">开课</option><option value="0">停课</option></select>
+                <button onclick="loadCourses(1)">查询</button>
+                <button class="gray" onclick="clearCourseSearch(); loadCourses(1);">查全部</button>
+            </div>
+            <table id="courseTable" style="display:none">
+                <thead><tr><th>编码</th><th>名称</th><th>学分</th><th>学时</th><th>类型</th><th>授课教师</th><th>学期</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="co_pagination" style="display:none">
+                <button onclick="loadCourses(1)">首页</button>
+                <button onclick="loadCourses(co_page-1)" id="co_prev">←</button>
+                <span id="co_pageInfo"></span>
+                <button onclick="loadCourses(co_page+1)" id="co_next">→</button>
+                <button onclick="loadCourses(co_total)">末页</button>
+            </div>
+        </div>
+        <div class="card admin-only">
+            <h3>✏️ 新增 / 修改课程 <span class="hint">管理员专用</span></h3>
+            <span id="co_selected" style="display:none; font-weight:bold; color:#1890ff"></span>
+            <div class="row">
+                <input id="co_name" placeholder="课程名称 *">
+                <input id="co_code" placeholder="课程编码 *">
+                <input id="co_credit" placeholder="学分" style="width:70px" type="number" step="0.5">
+                <input id="co_hours" placeholder="学时" style="width:70px" type="number">
+                <select id="co_type"><option value="required">必修</option><option value="elective">选修</option></select>
+                <select id="co_status"><option value="1">开课</option><option value="0">停课</option></select>
+            </div>
+            <div class="row" style="margin-top:4px">
+                <input id="co_teacherId" placeholder="教师ID" style="width:80px" type="number">
+                <input id="co_semester" placeholder="学期(如2024-2025-1)">
+                <input id="co_remark" placeholder="备注" style="width:250px">
+            </div>
+            <div class="row" style="margin-top:8px">
+                <button class="success" onclick="addCourse()">新增</button>
+                <button onclick="updateCourse()">修改</button>
+                <button class="danger" onclick="deleteCourse()">逻辑删除</button>
+                <button class="gray" onclick="clearCourseForm()">清空</button>
+            </div>
+        </div>
+        <!-- 课程下的学生列表 -->
+        <div class="card">
+            <h3>👥 查看课程选课学生 <span class="hint">先点击上方课程行选中</span></h3>
+            <span id="co_selInfo" style="color:#1890ff"></span>
+            <div class="row">
+                <input id="co_stuName" placeholder="学生姓名">
+                <select id="co_relStatus"><option value="">全部状态</option><option value="1">在读</option><option value="2">已修完</option><option value="3">退课</option></select>
+                <button onclick="loadCourseStudents(1)">查询选课学生</button>
+            </div>
+            <table id="coStudentTable" style="display:none">
+                <thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>班级</th><th>成绩</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="cos_pagination" style="display:none">
+                <button onclick="loadCourseStudents(1)">首页</button>
+                <button onclick="loadCourseStudents(cos_page-1)" id="cos_prev">←</button>
+                <span id="cos_pageInfo"></span>
+                <button onclick="loadCourseStudents(cos_page+1)" id="cos_next">→</button>
+                <button onclick="loadCourseStudents(cos_total)">末页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 选课管理 ==================== -->
+    <div class="tab-panel" id="panel-enroll">
+        <div class="card">
+            <h3>📝 选课操作 <span class="hint">管理员专用</span></h3>
+            <div class="row">
+                <input id="e_studentId" placeholder="学生ID" style="width:100px" type="number">
+                <input id="e_courseId" placeholder="课程ID" style="width:100px" type="number">
+                <button class="success" onclick="doEnroll()">选课</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>📝 成绩录入 / 退课 <span class="hint">管理员专用</span></h3>
+            <div class="row">
+                <input id="e_relId" placeholder="选课记录ID (relId)" style="width:140px" type="number">
+                <input id="e_score" placeholder="成绩" style="width:80px" type="number" step="0.5">
+                <button class="success" onclick="doScore()">录入成绩</button>
+                <button class="danger" onclick="doDrop()">退课</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>📋 学生选课查询</h3>
+            <div class="row">
+                <input id="e_lookupStudentId" placeholder="输入学生ID" style="width:120px" type="number">
+                <button onclick="loadStudentCourses(1)">查询选课</button>
+                <span id="e_stuInfo" style="color:#1890ff"></span>
+            </div>
+            <table id="enrollTable" style="display:none">
+                <thead><tr><th>relId</th><th>课程编码</th><th>课程名称</th><th>学分</th><th>类型</th><th>教师</th><th>学期</th><th>成绩</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+            <div class="pagination-bar" id="e_pagination" style="display:none">
+                <button onclick="loadStudentCourses(1)">首页</button>
+                <button onclick="loadStudentCourses(e_page-1)" id="e_prev">←</button>
+                <span id="e_pageInfo"></span>
+                <button onclick="loadStudentCourses(e_page+1)" id="e_next">→</button>
+                <button onclick="loadStudentCourses(e_total)">末页</button>
+            </div>
+        </div>
+        <!-- 学生详情下的选课 -->
+        <div class="card">
+            <h3>🔍 从学生管理跳转查询 <span class="hint">先在学生管理页点击学生行，再切到此页点击查询</span></h3>
+            <div class="row">
+                <span id="e_crossId" style="color:#999">未选中学生</span>
+                <button onclick="crossLoadStudentCourses()">查询该生选课</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Kafka ==================== -->
+    <div class="tab-panel" id="panel-kafka">
+        <div class="card">
+            <h3>📨 Kafka 消息 <span class="hint">管理员专用 / 模拟外部系统推送</span></h3>
+            <div class="row">
+                <input id="kName" placeholder="学生姓名">
+                <input id="kBirthday" placeholder="生日" style="width:110px">
+                <input id="kGrade" placeholder="年级">
+                <input id="kEmail" placeholder="邮箱">
+                <input id="kPhone" placeholder="电话">
+                <button onclick="sendToKafka()">发送到Kafka</button>
+                <button onclick="checkKafkaStatus()">Kafka状态</button>
+            </div>
+            <div id="kafkaResult" class="result-box" style="display:none"></div>
+        </div>
+    </div>
+
+    <!-- ==================== 我的信息 ==================== -->
+    <div class="tab-panel" id="panel-me">
+        <div class="card">
+            <h3>👤 我的信息</h3>
+            <button onclick="myInfo()">查看</button>
+            <button class="danger" onclick="deleteAccount()" style="background:#8c8c8c">注销账号</button>
+            <div id="meResult" class="result-box" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE = 'http://localhost:8080';
+let token = '';
+let currentRole = '';
+const PAGE_SIZE = 10;
+
+// ==================== 通用 ====================
+function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch(e) { return {}; } }
+
+function showToken(t) {
+    token = t;
+    var p = parseJwt(t);
+    currentRole = p.role || 'student';
+    var d = document.getElementById('tokenBar');
+    d.style.display = 'block';
+    d.innerHTML = '已登录: <b>' + (p.username || '') + '</b> <span class="role-tag ' + (currentRole === 'admin' ? 'role-admin' : 'role-student') + '">' + (currentRole === 'admin' ? '管理员' : '学生') + '</span>';
+    document.getElementById('logoutBtn').style.display = '';
+    document.getElementById('tabBar').style.display = 'flex';
+    showUIByRole();
+    loadStats();
+}
+
+async function loadStats() {
+    const r = await api('GET', '/api/edu/stat/latest');
+    var card = document.getElementById('statCard');
+    var content = document.getElementById('statContent');
+    if (r.code === 200 && r.data) {
+        card.style.display = '';
+        content.innerHTML =
+            '<span>📅 <b>' + (r.data.stat_date || '-') + '</b></span>' +
+            '<span>🎓 在读学生: <b>' + (r.data.total_students || 0) + '</b></span>' +
+            '<span>👨‍🏫 教师: <b>' + (r.data.total_teachers || 0) + '</b></span>' +
+            '<span>📖 课程: <b>' + (r.data.total_courses || 0) + '</b></span>' +
+            '<span>📝 选课: <b>' + (r.data.total_enrollments || 0) + '</b></span>' +
+            '<span>📈 均分: <b>' + (r.data.avg_score != null ? r.data.avg_score : '-') + '</b></span>' +
+            '<span>⚠ 挂科: <b style="color:' + (r.data.fail_count > 0 ? '#ff4d4f' : '#52c41a') + '">' + (r.data.fail_count || 0) + '</b></span>';
+    } else {
+        content.innerHTML = '<span style="color:#999">暂无统计数据（每天 23:59 自动生成）</span>';
+        card.style.display = '';
+    }
+}
+
+function showUIByRole() {
+    var isAdmin = currentRole === 'admin';
+    document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = isAdmin ? '' : 'none'; });
+    document.querySelectorAll('.admin-tab').forEach(function(el) { el.style.display = isAdmin ? '' : 'none'; });
+    // 学生登录后若当前在管理员标签页，自动切回学生管理
+    if (!isAdmin && (currentTab === 'enroll' || currentTab === 'kafka')) {
+        switchTab('student');
+    }
+}
+
+async function api(method, path, body) {
+    const opts = { method, headers: {} };
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    try {
+        const res = await fetch(BASE + path, opts);
+        const data = await res.json();
+        if (data.code === 401) { alert('请先登录'); return data; }
+        return data;
+    } catch(e) {
+        alert('网络请求失败: ' + e.message);
+        return { code: -1, message: e.message };
+    }
+}
+
+// ==================== 标签切换 ====================
+let currentTab = 'student';
+let crossSelectedStudentId = null;
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+    var activeTab = document.querySelector('.tab[data-tab="' + tab + '"]');
+    if (activeTab) activeTab.classList.add('active');
+    currentTab = tab;
+    if (tab === 'enroll' && crossSelectedStudentId) {
+        document.getElementById('e_crossId').textContent = '已选中学生ID: ' + crossSelectedStudentId;
+        document.getElementById('e_lookupStudentId').value = crossSelectedStudentId;
+    }
+}
+
+// ==================== 认证 ====================
+async function login() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    const r = await api('POST', '/auth/login', {username: u, password: p});
+    if (r.code === 200) { showToken(r.data.token); alert('登录成功！'); loadStudents(1); }
+    else alert('失败: ' + r.message);
+}
+
+async function register() {
+    const u = document.getElementById('loginUser').value;
+    const p = document.getElementById('loginPass').value;
+    const code = document.getElementById('inviteCode').value;
+    const body = {username: u, password: p};
+    if (code) body.inviteCode = code;
+    const r = await api('POST', '/auth/register', body);
+    alert(r.code === 200 ? '注册成功，请登录' : r.message);
+}
+
+async function logout() {
+    const r = await api('POST', '/auth/logout');
+    token = ''; currentRole = '';
+    document.getElementById('tokenBar').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('tabBar').style.display = 'none';
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('panel-student').classList.add('active');
+    document.querySelectorAll('.admin-only, .admin-tab').forEach(function(el) { el.style.display = ''; });
+    alert(r.message);
+}
+
+async function myInfo() {
+    const r = await api('GET', '/auth/me');
+    const d = document.getElementById('meResult');
+    d.style.display = 'block';
+    d.textContent = JSON.stringify(r, null, 2);
+}
+
+async function deleteAccount() {
+    if (!confirm('确定要注销账号吗？此操作不可撤销！')) return;
+    const r = await api('DELETE', '/auth/account');
+    if (r.code === 200) { token = ''; currentRole = ''; document.getElementById('tokenBar').style.display = 'none'; document.getElementById('tabBar').style.display = 'none'; }
+    alert(r.message);
+}
+
+// ==================== 学生管理 ====================
+let s_page = 1, s_total = 1, s_selectedId = null;
+let sc_page = 1, sc_total = 1;
+
+function clearStudentSearch() {
+    ['s_searchName','s_searchNo','s_searchClassId'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('s_searchStatus').value = '';
+}
+
+async function loadStudents(page) {
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    var v = document.getElementById('s_searchName').value; if (v) params += '&studentName=' + encodeURIComponent(v);
+    v = document.getElementById('s_searchNo').value; if (v) params += '&studentNo=' + encodeURIComponent(v);
+    v = document.getElementById('s_searchClassId').value; if (v) params += '&classId=' + v;
+    v = document.getElementById('s_searchStatus').value; if (v) params += '&studentStatus=' + v;
+    const r = await api('GET', '/api/edu/student/page?' + params);
+    if (r.code === 200 && r.data) {
+        s_page = r.data.page; s_total = Math.ceil(r.data.total / PAGE_SIZE);
+        var tbody = document.getElementById('studentTable').querySelector('tbody');
+        tbody.innerHTML = (r.data.records || []).map(function(s) {
+            var gender = s.gender === 1 ? '男' : s.gender === 2 ? '女' : '未知';
+            var status = s.studentStatus === 1 ? '在读' : s.studentStatus === 2 ? '休学' : s.studentStatus === 3 ? '毕业' : '退学';
+            var name = (s.studentName || '').replace(/'/g, "\\'");
+            return '<tr onclick="selectStudent(' + s.studentId + ',\'' + name + '\')" data-sid="' + s.studentId + '">' +
+                '<td>' + (s.studentNo || '') + '</td><td>' + (s.studentName || '') + '</td><td>' + gender + '</td>' +
+                '<td>' + (s.className || '') + '</td><td>' + (s.grade || '') + '</td><td>' + (s.enrollmentYear || '') + '</td>' +
+                '<td>' + status + '</td><td>' + (s.phone || '') + '</td></tr>';
+        }).join('');
+        document.getElementById('studentTable').style.display = 'table';
+        document.getElementById('s_pagination').style.display = 'block';
+        document.getElementById('s_pageInfo').textContent = '第 ' + s_page + ' / ' + s_total + ' 页';
+        document.getElementById('s_prev').disabled = s_page <= 1;
+        document.getElementById('s_next').disabled = s_page >= s_total;
+    }
+}
+
+function selectStudent(id, name) {
+    s_selectedId = id; crossSelectedStudentId = id;
+    document.querySelectorAll('#studentTable tbody tr').forEach(function(r) { r.classList.remove('selected'); });
+    var row = document.querySelector('#studentTable tbody tr[data-sid="' + id + '"]');
+    if (row) row.classList.add('selected');
+    document.getElementById('s_selected').style.display = 'inline';
+    document.getElementById('s_selected').textContent = '已选中: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('e_crossId').textContent = '已选中学生ID: ' + id;
+    document.getElementById('e_lookupStudentId').value = id;
+    document.getElementById('s_selected_course').textContent = '已选中学生: ' + name + ' (ID: ' + id + ')';
+}
+
+function clearStudentForm() {
+    s_selectedId = null; crossSelectedStudentId = null;
+    document.getElementById('s_selected').style.display = 'none';
+    ['s_name','s_no','s_birthday','s_email','s_phone','s_classId','s_enrollmentYear'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('s_gender').value = '0'; document.getElementById('s_grade').value = ''; document.getElementById('s_status').value = '1';
+}
+
+async function addStudent() {
+    var data = { studentName: document.getElementById('s_name').value || '未命名' };
+    var v;
+    v = document.getElementById('s_no').value; if (v) data.studentNo = v;
+    v = document.getElementById('s_birthday').value; if (v) data.birthday = v;
+    data.gender = parseInt(document.getElementById('s_gender').value);
+    v = document.getElementById('s_grade').value; if (v) data.grade = v;
+    v = document.getElementById('s_email').value; if (v) data.email = v;
+    v = document.getElementById('s_phone').value; if (v) data.phone = v;
+    v = document.getElementById('s_classId').value; if (v) data.classId = parseInt(v);
+    v = document.getElementById('s_enrollmentYear').value; if (v) data.enrollmentYear = v;
+    data.studentStatus = parseInt(document.getElementById('s_status').value);
+    if (!data.studentName || data.studentName === '未命名') { alert('请填写姓名'); return; }
+    const r = await api('POST', '/api/edu/student', data);
+    alert(r.code === 200 ? '新增成功 ID=' + r.data.id : r.message);
+    clearStudentForm(); loadStudents(1);
+}
+
+async function updateStudent() {
+    if (!s_selectedId) { alert('请先在表格中点击学生'); return; }
+    var data = { id: s_selectedId };
+    var v;
+    v = document.getElementById('s_name').value; if (v) data.studentName = v;
+    v = document.getElementById('s_no').value; if (v) data.studentNo = v;
+    v = document.getElementById('s_birthday').value; if (v) data.birthday = v;
+    data.gender = parseInt(document.getElementById('s_gender').value);
+    v = document.getElementById('s_grade').value; if (v) data.grade = v;
+    v = document.getElementById('s_email').value; if (v) data.email = v;
+    v = document.getElementById('s_phone').value; if (v) data.phone = v;
+    v = document.getElementById('s_classId').value; if (v) data.classId = parseInt(v);
+    v = document.getElementById('s_enrollmentYear').value; if (v) data.enrollmentYear = v;
+    data.studentStatus = parseInt(document.getElementById('s_status').value);
+    const r = await api('PUT', '/api/edu/student', data);
+    alert(r.message); clearStudentForm(); loadStudents(1);
+}
+
+async function deleteStudent() {
+    if (!s_selectedId) { alert('请先选中学生'); return; }
+    if (!confirm('确定逻辑删除该学生吗？')) return;
+    const r = await api('DELETE', '/api/edu/student/' + s_selectedId);
+    alert(r.message); clearStudentForm(); loadStudents(1);
+}
+
+// ==================== 班级管理 ====================
+let c_page = 1, c_total = 1, c_selectedId = null;
+
+function clearClassSearch() {
+    ['c_searchName','c_searchCode','c_searchGrade'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('c_searchStatus').value = '';
+}
+
+async function loadClasses(page) {
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    var v = document.getElementById('c_searchName').value; if (v) params += '&className=' + encodeURIComponent(v);
+    v = document.getElementById('c_searchCode').value; if (v) params += '&classCode=' + encodeURIComponent(v);
+    v = document.getElementById('c_searchGrade').value; if (v) params += '&grade=' + encodeURIComponent(v);
+    v = document.getElementById('c_searchStatus').value; if (v) params += '&classStatus=' + v;
+    const r = await api('GET', '/api/edu/class/page?' + params);
+    if (r.code === 200 && r.data) {
+        c_page = r.data.page; c_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('classTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(c) {
+            var status = c.classStatus === 1 ? '正常' : '禁用';
+            return '<tr onclick="selectClass(' + c.id + ',\'' + (c.className || '').replace(/'/g, "\\'") + '\')" data-cid="' + c.id + '">' +
+                '<td>' + (c.classCode || '') + '</td><td>' + (c.className || '') + '</td><td>' + (c.grade || '') + '</td>' +
+                '<td>' + (c.major || '') + '</td><td>' + (c.classSort || 0) + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('classTable').style.display = 'table';
+        document.getElementById('c_pagination').style.display = 'block';
+        document.getElementById('c_pageInfo').textContent = '第 ' + c_page + ' / ' + c_total + ' 页';
+        document.getElementById('c_prev').disabled = c_page <= 1;
+        document.getElementById('c_next').disabled = c_page >= c_total;
+    }
+}
+
+function selectClass(id, name) {
+    c_selectedId = id;
+    document.querySelectorAll('#classTable tbody tr').forEach(function(r) { r.classList.remove('selected'); });
+    var row = document.querySelector('#classTable tbody tr[data-cid="' + id + '"]');
+    if (row) row.classList.add('selected');
+    document.getElementById('c_selected').style.display = 'inline';
+    document.getElementById('c_selected').textContent = '已选中: ' + name + ' (ID: ' + id + ')';
+}
+
+function clearClassForm() {
+    c_selectedId = null; document.getElementById('c_selected').style.display = 'none';
+    ['c_name','c_code','c_grade','c_major','c_sort','c_remark'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('c_status').value = '1';
+}
+
+async function addClass() {
+    var data = { className: document.getElementById('c_name').value, classCode: document.getElementById('c_code').value };
+    if (!data.className || !data.classCode) { alert('班级名称和编码不能为空'); return; }
+    var v;
+    v = document.getElementById('c_grade').value; if (v) data.grade = v;
+    v = document.getElementById('c_major').value; if (v) data.major = v;
+    v = document.getElementById('c_sort').value; if (v) data.classSort = parseInt(v);
+    data.classStatus = parseInt(document.getElementById('c_status').value);
+    v = document.getElementById('c_remark').value; if (v) data.classRemark = v;
+    const r = await api('POST', '/api/edu/class', data);
+    alert(r.code === 200 ? '新增成功' : r.message); clearClassForm(); loadClasses(1);
+}
+
+async function updateClass() {
+    if (!c_selectedId) { alert('请先选中班级'); return; }
+    var data = { id: c_selectedId };
+    var v;
+    v = document.getElementById('c_name').value; if (v) data.className = v;
+    v = document.getElementById('c_code').value; if (v) data.classCode = v;
+    v = document.getElementById('c_grade').value; if (v) data.grade = v;
+    v = document.getElementById('c_major').value; if (v) data.major = v;
+    v = document.getElementById('c_sort').value; if (v) data.classSort = parseInt(v);
+    data.classStatus = parseInt(document.getElementById('c_status').value);
+    v = document.getElementById('c_remark').value; if (v) data.classRemark = v;
+    const r = await api('PUT', '/api/edu/class', data);
+    alert(r.message); clearClassForm(); loadClasses(1);
+}
+
+async function deleteClass() {
+    if (!c_selectedId) { alert('请先选中班级'); return; }
+    if (!confirm('确定逻辑删除该班级吗？')) return;
+    const r = await api('DELETE', '/api/edu/class/' + c_selectedId);
+    alert(r.message); clearClassForm(); loadClasses(1);
+}
+
+// ==================== 教师管理 ====================
+let t_page = 1, t_total = 1, t_selectedId = null;
+
+function clearTeacherSearch() {
+    ['t_searchName','t_searchNo'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('t_searchTitle').value = '';
+    document.getElementById('t_searchStatus').value = '';
+}
+
+async function loadTeachers(page) {
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    var v = document.getElementById('t_searchName').value; if (v) params += '&teacherName=' + encodeURIComponent(v);
+    v = document.getElementById('t_searchNo').value; if (v) params += '&teacherNo=' + encodeURIComponent(v);
+    v = document.getElementById('t_searchTitle').value; if (v) params += '&title=' + encodeURIComponent(v);
+    v = document.getElementById('t_searchStatus').value; if (v) params += '&teacherStatus=' + v;
+    const r = await api('GET', '/api/edu/teacher/page?' + params);
+    if (r.code === 200 && r.data) {
+        t_page = r.data.page; t_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('teacherTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(t) {
+            var gender = t.gender === 1 ? '男' : t.gender === 2 ? '女' : '未知';
+            var status = t.teacherStatus === 1 ? '在职' : '离职';
+            return '<tr onclick="selectTeacher(' + t.id + ',\'' + (t.teacherName || '').replace(/'/g, "\\'") + '\')" data-tid="' + t.id + '">' +
+                '<td>' + (t.teacherNo || '') + '</td><td>' + (t.teacherName || '') + '</td><td>' + gender + '</td>' +
+                '<td>' + (t.title || '') + '</td><td>' + (t.phone || '') + '</td><td>' + (t.email || '') + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('teacherTable').style.display = 'table';
+        document.getElementById('t_pagination').style.display = 'block';
+        document.getElementById('t_pageInfo').textContent = '第 ' + t_page + ' / ' + t_total + ' 页';
+        document.getElementById('t_prev').disabled = t_page <= 1;
+        document.getElementById('t_next').disabled = t_page >= t_total;
+    }
+}
+
+function selectTeacher(id, name) {
+    t_selectedId = id;
+    document.querySelectorAll('#teacherTable tbody tr').forEach(function(r) { r.classList.remove('selected'); });
+    var row = document.querySelector('#teacherTable tbody tr[data-tid="' + id + '"]');
+    if (row) row.classList.add('selected');
+    document.getElementById('t_selected').style.display = 'inline';
+    document.getElementById('t_selected').textContent = '已选中: ' + name + ' (ID: ' + id + ')';
+}
+
+function clearTeacherForm() {
+    t_selectedId = null; document.getElementById('t_selected').style.display = 'none';
+    ['t_name','t_no','t_email','t_phone','t_remark'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('t_gender').value = '0'; document.getElementById('t_title').value = '教授'; document.getElementById('t_status').value = '1';
+}
+
+async function addTeacher() {
+    var data = { teacherName: document.getElementById('t_name').value, teacherNo: document.getElementById('t_no').value };
+    if (!data.teacherName) { alert('教师姓名不能为空'); return; }
+    data.gender = parseInt(document.getElementById('t_gender').value);
+    data.title = document.getElementById('t_title').value;
+    data.teacherStatus = parseInt(document.getElementById('t_status').value);
+    var v;
+    v = document.getElementById('t_email').value; if (v) data.email = v;
+    v = document.getElementById('t_phone').value; if (v) data.phone = v;
+    v = document.getElementById('t_remark').value; if (v) data.teacherRemark = v;
+    const r = await api('POST', '/api/edu/teacher', data);
+    alert(r.code === 200 ? '新增成功' : r.message); clearTeacherForm(); loadTeachers(1);
+}
+
+async function updateTeacher() {
+    if (!t_selectedId) { alert('请先选中教师'); return; }
+    var data = { id: t_selectedId };
+    var v;
+    v = document.getElementById('t_name').value; if (v) data.teacherName = v;
+    v = document.getElementById('t_no').value; if (v) data.teacherNo = v;
+    data.gender = parseInt(document.getElementById('t_gender').value);
+    data.title = document.getElementById('t_title').value;
+    data.teacherStatus = parseInt(document.getElementById('t_status').value);
+    v = document.getElementById('t_email').value; if (v) data.email = v;
+    v = document.getElementById('t_phone').value; if (v) data.phone = v;
+    v = document.getElementById('t_remark').value; if (v) data.teacherRemark = v;
+    const r = await api('PUT', '/api/edu/teacher', data);
+    alert(r.message); clearTeacherForm(); loadTeachers(1);
+}
+
+async function deleteTeacher() {
+    if (!t_selectedId) { alert('请先选中教师'); return; }
+    if (!confirm('确定逻辑删除该教师吗？')) return;
+    const r = await api('DELETE', '/api/edu/teacher/' + t_selectedId);
+    alert(r.message); clearTeacherForm(); loadTeachers(1);
+}
+
+// ==================== 课程管理 ====================
+let co_page = 1, co_total = 1, co_selectedId = null;
+
+function clearCourseSearch() {
+    ['co_searchName','co_searchCode'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('co_searchType').value = '';
+    document.getElementById('co_searchStatus').value = '';
+}
+let cos_page = 1, cos_total = 1;
+
+async function loadCourses(page) {
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    var v = document.getElementById('co_searchName').value; if (v) params += '&courseName=' + encodeURIComponent(v);
+    v = document.getElementById('co_searchCode').value; if (v) params += '&courseCode=' + encodeURIComponent(v);
+    v = document.getElementById('co_searchType').value; if (v) params += '&courseType=' + v;
+    v = document.getElementById('co_searchStatus').value; if (v) params += '&courseStatus=' + v;
+    const r = await api('GET', '/api/edu/course/page?' + params);
+    if (r.code === 200 && r.data) {
+        co_page = r.data.page; co_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('courseTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(c) {
+            var type = c.courseType === 'required' ? '必修' : '选修';
+            var status = c.courseStatus === 1 ? '开课' : '停课';
+            return '<tr onclick="selectCourse(' + c.courseId + ',\'' + (c.courseName || '').replace(/'/g, "\\'") + '\')" data-coid="' + c.courseId + '">' +
+                '<td>' + (c.courseCode || '') + '</td><td>' + (c.courseName || '') + '</td><td>' + (c.credit || '') + '</td>' +
+                '<td>' + (c.courseHours || '') + '</td><td>' + type + '</td><td>' + (c.teacherName || '') + '</td>' +
+                '<td>' + (c.semester || '') + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('courseTable').style.display = 'table';
+        document.getElementById('co_pagination').style.display = 'block';
+        document.getElementById('co_pageInfo').textContent = '第 ' + co_page + ' / ' + co_total + ' 页';
+        document.getElementById('co_prev').disabled = co_page <= 1;
+        document.getElementById('co_next').disabled = co_page >= co_total;
+    }
+}
+
+function selectCourse(id, name) {
+    co_selectedId = id;
+    document.querySelectorAll('#courseTable tbody tr').forEach(function(r) { r.classList.remove('selected'); });
+    var row = document.querySelector('#courseTable tbody tr[data-coid="' + id + '"]');
+    if (row) row.classList.add('selected');
+    document.getElementById('co_selected').style.display = 'inline';
+    document.getElementById('co_selected').textContent = '已选中: ' + name + ' (ID: ' + id + ')';
+    document.getElementById('co_selInfo').textContent = '已选中课程: ' + name + ' (ID: ' + id + ')';
+}
+
+function clearCourseForm() {
+    co_selectedId = null; document.getElementById('co_selected').style.display = 'none';
+    ['co_name','co_code','co_credit','co_hours','co_teacherId','co_semester','co_remark'].forEach(function(f) { document.getElementById(f).value = ''; });
+    document.getElementById('co_type').value = 'required'; document.getElementById('co_status').value = '1';
+}
+
+async function addCourse() {
+    var data = { courseName: document.getElementById('co_name').value, courseCode: document.getElementById('co_code').value };
+    if (!data.courseName || !data.courseCode) { alert('课程名称和编码不能为空'); return; }
+    var v;
+    v = document.getElementById('co_credit').value; if (v) data.credit = parseFloat(v);
+    v = document.getElementById('co_hours').value; if (v) data.courseHours = parseInt(v);
+    data.courseType = document.getElementById('co_type').value;
+    data.courseStatus = parseInt(document.getElementById('co_status').value);
+    v = document.getElementById('co_teacherId').value; if (v) data.teacherId = parseInt(v);
+    v = document.getElementById('co_semester').value; if (v) data.semester = v;
+    v = document.getElementById('co_remark').value; if (v) data.courseRemark = v;
+    const r = await api('POST', '/api/edu/course', data);
+    alert(r.code === 200 ? '新增成功' : r.message); clearCourseForm(); loadCourses(1);
+}
+
+async function updateCourse() {
+    if (!co_selectedId) { alert('请先选中课程'); return; }
+    var data = { id: co_selectedId };
+    var v;
+    v = document.getElementById('co_name').value; if (v) data.courseName = v;
+    v = document.getElementById('co_code').value; if (v) data.courseCode = v;
+    v = document.getElementById('co_credit').value; if (v) data.credit = parseFloat(v);
+    v = document.getElementById('co_hours').value; if (v) data.courseHours = parseInt(v);
+    data.courseType = document.getElementById('co_type').value;
+    data.courseStatus = parseInt(document.getElementById('co_status').value);
+    v = document.getElementById('co_teacherId').value; if (v) data.teacherId = parseInt(v);
+    v = document.getElementById('co_semester').value; if (v) data.semester = v;
+    v = document.getElementById('co_remark').value; if (v) data.courseRemark = v;
+    const r = await api('PUT', '/api/edu/course', data);
+    alert(r.message); clearCourseForm(); loadCourses(1);
+}
+
+async function deleteCourse() {
+    if (!co_selectedId) { alert('请先选中课程'); return; }
+    if (!confirm('确定逻辑删除该课程吗？')) return;
+    const r = await api('DELETE', '/api/edu/course/' + co_selectedId);
+    alert(r.message); clearCourseForm(); loadCourses(1);
+}
+
+async function loadCourseStudents(page) {
+    if (!co_selectedId) { alert('请先在课程表格中点击课程'); return; }
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    var v = document.getElementById('co_stuName').value; if (v) params += '&studentName=' + encodeURIComponent(v);
+    v = document.getElementById('co_relStatus').value; if (v) params += '&relStatus=' + v;
+    const r = await api('GET', '/api/edu/course/' + co_selectedId + '/students?' + params);
+    if (r.code === 200 && r.data) {
+        cos_page = r.data.page; cos_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('coStudentTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(s) {
+            var gender = s.gender === 1 ? '男' : s.gender === 2 ? '女' : '未知';
+            var status = s.relStatus === 1 ? '在读' : s.relStatus === 2 ? '已修完' : s.relStatus === 3 ? '退课' : '';
+            return '<tr><td>' + (s.studentNo || '') + '</td><td>' + (s.studentName || '') + '</td><td>' + gender + '</td>' +
+                '<td>' + (s.className || '') + '</td><td>' + (s.score != null ? s.score : '-') + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('coStudentTable').style.display = 'table';
+        document.getElementById('cos_pagination').style.display = 'block';
+        document.getElementById('cos_pageInfo').textContent = '第 ' + cos_page + ' / ' + cos_total + ' 页';
+        document.getElementById('cos_prev').disabled = cos_page <= 1;
+        document.getElementById('cos_next').disabled = cos_page >= cos_total;
+    }
+}
+
+// ==================== 选课管理 ====================
+let e_page = 1, e_total = 1;
+
+async function doEnroll() {
+    var sid = parseInt(document.getElementById('e_studentId').value);
+    var cid = parseInt(document.getElementById('e_courseId').value);
+    if (!sid || !cid) { alert('请填写学生ID和课程ID'); return; }
+    const r = await api('POST', '/api/edu/student-course', { studentId: sid, courseId: cid });
+    alert(r.code === 200 ? '选课成功 relId=' + r.data.id : r.message);
+}
+
+async function doDrop() {
+    var rid = parseInt(document.getElementById('e_relId').value);
+    if (!rid) { alert('请填写选课记录ID'); return; }
+    if (!confirm('确定退课吗？')) return;
+    const r = await api('DELETE', '/api/edu/student-course/' + rid);
+    alert(r.message);
+}
+
+async function doScore() {
+    var rid = parseInt(document.getElementById('e_relId').value);
+    var score = parseFloat(document.getElementById('e_score').value);
+    if (!rid || isNaN(score)) { alert('请填写选课记录ID和成绩'); return; }
+    const r = await api('PUT', '/api/edu/student-course/' + rid + '/score', { score: score });
+    alert(r.message);
+}
+
+async function loadStudentCourses(page) {
+    var sid = parseInt(document.getElementById('e_lookupStudentId').value);
+    if (!sid) { alert('请填写学生ID'); return; }
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    const r = await api('GET', '/api/edu/student/' + sid + '/courses?' + params);
+    if (r.code === 200 && r.data) {
+        e_page = r.data.page; e_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('enrollTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(e) {
+            var status = e.relStatus === 1 ? '在读' : e.relStatus === 2 ? '已修完' : e.relStatus === 3 ? '退课' : '';
+            return '<tr><td>' + e.relId + '</td><td>' + (e.courseCode || '') + '</td><td>' + (e.courseName || '') + '</td>' +
+                '<td>' + (e.credit || '') + '</td><td>' + (e.courseType === 'required' ? '必修' : '选修') + '</td>' +
+                '<td>' + (e.teacherName || '') + '</td><td>' + (e.semester || '') + '</td>' +
+                '<td>' + (e.score != null ? e.score : '-') + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('enrollTable').style.display = 'table';
+        document.getElementById('e_pagination').style.display = 'block';
+        document.getElementById('e_pageInfo').textContent = '第 ' + e_page + ' / ' + e_total + ' 页';
+        document.getElementById('e_prev').disabled = e_page <= 1;
+        document.getElementById('e_next').disabled = e_page >= e_total;
+        document.getElementById('e_stuInfo').textContent = '学生 ID: ' + sid + ' | 共 ' + r.data.total + ' 门课';
+    }
+}
+
+async function crossLoadStudentCourses() {
+    if (!crossSelectedStudentId) { alert('请先在学生管理页选中一个学生'); return; }
+    document.getElementById('e_lookupStudentId').value = crossSelectedStudentId;
+    loadStudentCourses(1);
+}
+
+async function loadStudentCoursesPanel(page) {
+    if (!s_selectedId) { alert('请先在上方学生表格中点击一个学生'); return; }
+    var params = 'page=' + (page || 1) + '&size=' + PAGE_SIZE;
+    const r = await api('GET', '/api/edu/student/' + s_selectedId + '/courses?' + params);
+    if (r.code === 200 && r.data) {
+        sc_page = r.data.page; sc_total = Math.ceil(r.data.total / PAGE_SIZE);
+        document.getElementById('studentCoursePanelTable').querySelector('tbody').innerHTML = (r.data.records || []).map(function(e) {
+            var status = e.relStatus === 1 ? '在读' : e.relStatus === 2 ? '已修完' : e.relStatus === 3 ? '退课' : '';
+            return '<tr><td>' + e.relId + '</td><td>' + (e.courseCode || '') + '</td><td>' + (e.courseName || '') + '</td>' +
+                '<td>' + (e.credit || '') + '</td><td>' + (e.courseType === 'required' ? '必修' : '选修') + '</td>' +
+                '<td>' + (e.teacherName || '') + '</td><td>' + (e.semester || '') + '</td>' +
+                '<td>' + (e.score != null ? e.score : '-') + '</td><td>' + status + '</td></tr>';
+        }).join('');
+        document.getElementById('studentCoursePanelTable').style.display = 'table';
+        document.getElementById('sc_pagination').style.display = 'block';
+        document.getElementById('sc_pageInfo').textContent = '第 ' + sc_page + ' / ' + sc_total + ' 页';
+        document.getElementById('sc_prev').disabled = sc_page <= 1;
+        document.getElementById('sc_next').disabled = sc_page >= sc_total;
+        document.getElementById('s_selected_course').textContent = '学生 ID: ' + s_selectedId + ' | 共 ' + r.data.total + ' 门课';
+    }
+}
+
+// ==================== Kafka ====================
+function getKafkaForm() {
+    return {
+        studentName: document.getElementById('kName').value || '未命名',
+        birthday: document.getElementById('kBirthday').value || null,
+        grade: document.getElementById('kGrade').value || '大一',
+        email: document.getElementById('kEmail').value || '',
+        phone: document.getElementById('kPhone').value || ''
+    };
+}
+
+async function sendToKafka() {
+    const r = await api('POST', '/kafka/receive-student', getKafkaForm());
+    const d = document.getElementById('kafkaResult');
+    d.style.display = 'block';
+    d.textContent = JSON.stringify(r, null, 2);
+}
+
+async function checkKafkaStatus() {
+    const r = await api('GET', '/kafka/status');
+    const d = document.getElementById('kafkaResult');
+    d.style.display = 'block';
+    d.textContent = JSON.stringify(r, null, 2);
+}
+</script>
+</body>
+</html>

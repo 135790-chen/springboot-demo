@@ -1,0 +1,24 @@
+# IDE
+.idea/
+*.iml
+
+# Maven
+target/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Environment
+.env
+.env.local
+
+# Temp
+work/
