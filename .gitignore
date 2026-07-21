@@ -22,3 +22,6 @@ docker-compose.override.yml
 
 # Temp
 work/
+
+# Large binaries
+zipkin.jar

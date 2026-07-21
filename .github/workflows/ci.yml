@@ -31,6 +31,9 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      - name: 给 mvnw 加执行权限
+        run: chmod +x mvnw
+
       - name: Maven 编译
         run: ./mvnw compile -B -q
 
