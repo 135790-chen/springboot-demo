@@ -32,13 +32,13 @@ jobs:
           restore-keys: ${{ runner.os }}-maven-
 
       - name: Maven 编译
-        run: ./mvnw compile -B -q
+        run: mvn compile -B -q
 
       - name: Maven 测试
-        run: ./mvnw test -B
+        run: mvn test -B
 
       - name: Maven 打包（跳过测试，已单独跑过）
-        run: ./mvnw package -Dmaven.test.skip=true -B -q
+        run: mvn package -Dmaven.test.skip=true -B -q
 
       - name: 上传 JAR 包（供后续 job 使用）
         uses: actions/upload-artifact@v4
