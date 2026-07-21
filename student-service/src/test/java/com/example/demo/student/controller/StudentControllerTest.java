@@ -83,7 +83,7 @@ class StudentControllerTest {
 
         mockMvc.perform(post("/students")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"studentName\":\"新同学\",\"grade\":\"大二\"}"))
+                        .content("{\"studentNo\":\"STU20250001\",\"studentName\":\"新同学\",\"grade\":\"大二\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
     }
