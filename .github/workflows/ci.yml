@@ -10,7 +10,7 @@ env:
   JAVA_VERSION: '17'
 
 jobs:
-  # ========== 编译 + 测试 ==========
+  # ========== 编译 + 测试 + 打包 + 镜像 ==========
   build:
     runs-on: ubuntu-latest
     steps:
@@ -37,48 +37,43 @@ jobs:
       - name: Maven 测试
         run: mvn test -B
 
-      - name: Maven 打包（跳过测试，已单独跑过）
+      - name: Maven 打包
         run: mvn package -Dmaven.test.skip=true -B -q
-
-      - name: 上传 JAR 包（供后续 job 使用）
-        uses: actions/upload-artifact@v4
-        with:
-          name: service-jars
-          path: |
-            */target/*.jar
-          retention-days: 1
-
-  # ========== 构建 Docker 镜像 ==========
-  docker:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [auth-service, student-service, gateway, message-service]
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 下载 JAR 包
-        uses: actions/download-artifact@v4
-        with:
-          name: service-jars
-
-      - name: 移动 JAR 到对应目录
-        run: |
-          mkdir -p ${{ matrix.service }}/target
-          mv ${{ matrix.service }}-*.jar ${{ matrix.service }}/target/
-
-      - name: 构建 Docker 镜像
+      - name: 构建 Docker 镜像（gateway）
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.service }}
+          context: ./gateway
           push: false
           load: true
-          tags: ${{ matrix.service }}:latest
+          tags: gateway:latest
+
+      - name: 构建 Docker 镜像（auth-service）
+        uses: docker/build-push-action@v6
+        with:
+          context: ./auth-service
+          push: false
+          load: true
+          tags: auth-service:latest
+
+      - name: 构建 Docker 镜像（student-service）
+        uses: docker/build-push-action@v6
+        with:
+          context: ./student-service
+          push: false
+          load: true
+          tags: student-service:latest
+
+      - name: 构建 Docker 镜像（message-service）
+        uses: docker/build-push-action@v6
+        with:
+          context: ./message-service
+          push: false
+          load: true
+          tags: message-service:latest
 
       - name: 验证镜像
-        run: docker images ${{ matrix.service }}
+        run: docker images
