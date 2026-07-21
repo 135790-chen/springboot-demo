@@ -56,7 +56,7 @@ class KafkaTestControllerTest {
         // 学生服务未启动时返回 500
         mockMvc.perform(post("/kafka/receive-student")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"测试\",\"age\":20,\"grade\":\"大一\"}"))
+                        .content("{\"studentNo\":\"STU20250001\",\"studentName\":\"测试\",\"grade\":\"大一\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(500));
     }
