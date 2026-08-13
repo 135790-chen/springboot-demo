@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.teaching.mapper.StudentMapper">
+
+    <select id="selectStudentVOPage" resultType="com.example.demo.vo.StudentVO">
+        SELECT s.student_id     AS studentId,
+               s.student_no     AS studentNo,
+               s.student_name   AS studentName,
+               s.gender         AS gender,
+               s.phone          AS phone,
+               s.email          AS email,
+               s.birthday       AS birthday,
+               s.class_id       AS classId,
+               c.class_name     AS className,
+               c.grade          AS grade,
+               s.enrollment_year AS enrollmentYear,
+               s.student_status AS studentStatus,
+               s.student_remark AS studentRemark,
+               s.gmt_create     AS gmtCreate,
+               s.gmt_modified   AS gmtModified
+        FROM edu_student s
+                 LEFT JOIN edu_class c
+                           ON s.class_id = c.class_id AND c.class_deleted = 0
+        WHERE s.student_deleted = 0
+        <if test="studentNo != null and studentNo != ''">
+            AND s.student_no LIKE CONCAT('%', #{studentNo}, '%')
+        </if>
+        <if test="studentName != null and studentName != ''">
+            AND s.student_name LIKE CONCAT('%', #{studentName}, '%')
+        </if>
+        <if test="classId != null">
+            AND s.class_id = #{classId}
+        </if>
+        <if test="gender != null">
+            AND s.gender = #{gender}
+        </if>
+        <if test="studentStatus != null">
+            AND s.student_status = #{studentStatus}
+        </if>
+        <if test="grade != null and grade != ''">
+            AND c.grade = #{grade}
+        </if>
+        <if test="className != null and className != ''">
+            AND c.class_name LIKE CONCAT('%', #{className}, '%')
+        </if>
+        ORDER BY s.student_no
+    </select>
+
+    <select id="selectStudentVOById" resultType="com.example.demo.vo.StudentVO">
+        SELECT s.student_id     AS studentId,
+               s.student_no     AS studentNo,
+               s.student_name   AS studentName,
+               s.gender         AS gender,
+               s.phone          AS phone,
+               s.email          AS email,
+               s.birthday       AS birthday,
+               s.class_id       AS classId,
+               c.class_name     AS className,
+               c.grade          AS grade,
+               s.enrollment_year AS enrollmentYear,
+               s.student_status AS studentStatus,
+               s.student_remark AS studentRemark,
+               s.gmt_create     AS gmtCreate,
+               s.gmt_modified   AS gmtModified
+        FROM edu_student s
+                 LEFT JOIN edu_class c
+                           ON s.class_id = c.class_id AND c.class_deleted = 0
+        WHERE s.student_id = #{studentId}
+          AND s.student_deleted = 0
+    </select>
+
+</mapper>

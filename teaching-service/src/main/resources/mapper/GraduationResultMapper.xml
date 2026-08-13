@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.teaching.mapper.GraduationResultMapper">
+
+    <select id="selectByStudentId" resultType="com.example.demo.entity.GraduationResult">
+        SELECT result_id                      AS id,
+               student_id                     AS studentId,
+               plan_id                        AS planId,
+               total_earned_credits           AS totalEarnedCredits,
+               required_earned_credits        AS requiredEarnedCredits,
+               major_elective_earned_credits  AS majorElectiveEarnedCredits,
+               general_elective_earned_credits AS generalElectiveEarnedCredits,
+               passed,
+               missing_items                  AS missingItems,
+               review_time                    AS reviewTime,
+               gmt_create                     AS gmtCreate
+        FROM edu_graduation_result
+        WHERE student_id = #{studentId}
+        ORDER BY review_time DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,1 @@
+var e={0:`退学`,1:`在读`,2:`休学`,3:`毕业`},t={0:`未知`,1:`男`,2:`女`},n={required:`必修`,elective:`选修`};export{t as n,e as r,n as t};

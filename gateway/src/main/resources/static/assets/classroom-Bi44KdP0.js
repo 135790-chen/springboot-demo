@@ -1,0 +1,1 @@
+import{n as e}from"./_plugin-vue_export-helper-xIAcBSOi.js";function t(t){return e.get(`/api/edu/classroom/page`,{params:t})}function n(t){return e.post(`/api/edu/classroom`,t)}function r(t){return e.put(`/api/edu/classroom`,t)}function i(t){return e.delete(`/api/edu/classroom/${t}`)}export{r as i,i as n,t as r,n as t};

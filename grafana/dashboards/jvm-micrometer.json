@@ -1,0 +1,190 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "服务状态",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "up{job=~\"gateway|auth-service|student-service|message-service\"}",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "value": "1", "text": "UP" },
+            { "type": "value", "value": "0", "text": "DOWN" }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "CPU 使用率 (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 4, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_usage{job=~\"gateway|auth-service|student-service|message-service\"}[1m]) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "JVM 堆内存 (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 0 },
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\", job=~\"gateway|auth-service|student-service|message-service\"} / 1048576",
+          "legendFormat": "{{service}} — used"
+        },
+        {
+          "expr": "jvm_memory_max_bytes{area=\"heap\", job=~\"gateway|auth-service|student-service|message-service\"} / 1048576",
+          "legendFormat": "{{service}} — max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mbytes",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "GC 暂停时间 (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=~\"gateway|auth-service|student-service|message-service\"}[1m]) / rate(jvm_gc_pause_seconds_count[1m]) * 1000",
+          "legendFormat": "{{service}} — {{action}} {{cause}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "HTTP 请求速率 (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{job=~\"gateway|auth-service|student-service|message-service\"}[1m])",
+          "legendFormat": "{{service}} — {{method}} {{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "HTTP 错误率 (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{status=~\"5..\", job=~\"gateway|auth-service|student-service|message-service\"}[2m]) / rate(http_server_requests_seconds_count[2m]) * 100",
+          "legendFormat": "{{service}} — 5xx"
+        },
+        {
+          "expr": "rate(http_server_requests_seconds_count{status=~\"4..\", job=~\"gateway|auth-service|student-service|message-service\"}[2m]) / rate(http_server_requests_seconds_count[2m]) * 100",
+          "legendFormat": "{{service}} — 4xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "P99 响应时间 (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket{job=~\"gateway|auth-service|student-service|message-service\"}[3m])) * 1000",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "JVM 线程数",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{job=~\"gateway|auth-service|student-service|message-service\"}",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "title": "系统负载",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "system_cpu_usage{job=~\"gateway|auth-service|student-service|message-service\"}",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["spring-boot", "jvm"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "title": "Spring Boot 服务监控",
+  "uid": "spring-boot-jvm",
+  "version": 1
+}

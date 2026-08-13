@@ -1,0 +1,1 @@
+import{n as e}from"./_plugin-vue_export-helper-xIAcBSOi.js";function t(t){return e.get(`/api/edu/college/page`,{params:t})}function n(t){return e.post(`/api/edu/college`,t)}function r(t){return e.put(`/api/edu/college`,t)}function i(t){return e.delete(`/api/edu/college/${t}`)}function a(t){return e.get(`/api/edu/college/${t}/majors`)}export{r as a,t as i,i as n,a as r,n as t};

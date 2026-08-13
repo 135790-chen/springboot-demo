@@ -19,6 +19,9 @@ public class Knife4jConfig {
         resources.add(new SwaggerResource("认证服务", "/v3/api-docs-auth", "2.0"));
         resources.add(new SwaggerResource("学生服务", "/v3/api-docs-student", "2.0"));
         resources.add(new SwaggerResource("消息服务", "/v3/api-docs-message", "2.0"));
+        resources.add(new SwaggerResource("组织架构服务", "/v3/api-docs-organization", "2.0"));
+        resources.add(new SwaggerResource("教学服务", "/v3/api-docs-teaching", "2.0"));
+        resources.add(new SwaggerResource("统计服务", "/v3/api-docs-statistics", "2.0"));
         return resources;
     }
 

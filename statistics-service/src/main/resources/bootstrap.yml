@@ -1,0 +1,20 @@
+server:
+  port: 8086
+spring:
+  application:
+    name: statistics-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: http://${NACOS_SERVICE_HOST:localhost}:${NACOS_SERVICE_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:local-dev}
+        username: ${NACOS_SERVICE_USERNAME:nacos}
+        password: ${NACOS_SERVICE_PASSWORD:nacos}
+      config:
+        server-addr: http://${NACOS_SERVICE_HOST:localhost}:${NACOS_SERVICE_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:local-dev}
+        file-extension: yaml
+  config:
+    import:
+      - optional:nacos:shared-config.yaml?group=DEFAULT_GROUP
+      - optional:nacos:statistics-service.yaml?group=DEFAULT_GROUP

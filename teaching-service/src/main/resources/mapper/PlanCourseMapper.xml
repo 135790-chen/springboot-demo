@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.teaching.mapper.PlanCourseMapper">
+
+    <select id="selectByPlanId" resultType="com.example.demo.entity.PlanCourse">
+        SELECT rel_id          AS id,
+               plan_id         AS planId,
+               course_id       AS courseId,
+               course_category AS courseCategory,
+               is_required     AS isRequired,
+               semester_order  AS semesterOrder,
+               gmt_create      AS gmtCreate
+        FROM edu_plan_course
+        WHERE plan_id = #{planId}
+        ORDER BY COALESCE(semester_order, 999), course_category, course_id
+    </select>
+
+    <select id="selectPlanCourseVOsByPlanId" resultType="com.example.demo.vo.PlanCourseVO">
+        SELECT pc.rel_id          AS relId,
+               pc.plan_id         AS planId,
+               pc.course_id       AS courseId,
+               c.course_name      AS courseName,
+               c.course_code      AS courseCode,
+               pc.course_category AS courseCategory,
+               pc.is_required     AS isRequired,
+               pc.semester_order  AS semesterOrder
+        FROM edu_plan_course pc
+        LEFT JOIN edu_course c ON pc.course_id = c.course_id
+        WHERE pc.plan_id = #{planId}
+        ORDER BY COALESCE(pc.semester_order, 999), pc.course_category, pc.course_id
+    </select>
+
+</mapper>

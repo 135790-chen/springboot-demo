@@ -7,8 +7,10 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,10 +29,25 @@ public class JwtUtil {
     }
 
     public String generateToken(Long userId, String username, String role) {
+        return generateToken(userId, username, role, null);
+    }
+
+    public String generateToken(Long userId, String username, String role, Long studentId) {
+        return generateToken(userId, username, role, studentId, Collections.emptyList());
+    }
+
+    public String generateToken(Long userId, String username, String role,
+                                Long studentId, List<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
         claims.put("role", role);
+        if (studentId != null) {
+            claims.put("studentId", studentId);
+        }
+        if (permissions != null && !permissions.isEmpty()) {
+            claims.put("permissions", permissions);
+        }
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
@@ -62,6 +79,20 @@ public class JwtUtil {
 
     public String getRoleFromToken(String token) {
         return parseToken(token).get("role", String.class);
+    }
+
+    public Long getStudentIdFromToken(String token) {
+        Object sid = parseToken(token).get("studentId");
+        return sid != null ? ((Number) sid).longValue() : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getPermissionsFromToken(String token) {
+        Object perms = parseToken(token).get("permissions");
+        if (perms instanceof List<?>) {
+            return (List<String>) perms;
+        }
+        return Collections.emptyList();
     }
 
     public boolean validateToken(String token) {

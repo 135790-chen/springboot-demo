@@ -89,6 +89,20 @@ public class KafkaTestController {
         return Result.success(student);
     }
 
+    @Operation(summary = "接收选课消息并发送到 Kafka", description = "teaching-service 调用此接口投递选课消息到 enrollment-topic")
+    @PostMapping("/enrollment")
+    public Result<String> sendEnrollment(@RequestBody String messageJson) {
+        log.info("[Kafka-Enrollment] 收到选课消息投递请求: {}", messageJson);
+        try {
+            kafkaProducerService.send("enrollment-topic", messageJson);
+            log.info("[Kafka-Enrollment] 已投递到 enrollment-topic");
+            return Result.success("消息已投递到 Kafka");
+        } catch (Exception e) {
+            log.error("[Kafka-Enrollment] 投递失败: {}", e.getMessage(), e);
+            return Result.error("Kafka 投递失败: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "检查 Kafka 状态")
     @GetMapping("/status")
     public Result<String> status() {

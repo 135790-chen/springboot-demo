@@ -1,5 +1,6 @@
 package com.example.demo.common;
 
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.example.demo.common.exception.DuplicateStudentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,15 @@ public class GlobalExceptionHandler {
                 .body(Result.error(409, e.getMessage()));
     }
 
-    // ── ④ 未知异常（兜底） ──
+    // ── ④ Sentinel 限流/熔断（@SentinelResource 未配置 fallback 时的兜底） ──
+    @ExceptionHandler(BlockException.class)
+    public ResponseEntity<Result<?>> handleSentinelBlock(BlockException e) {
+        log.warn("Sentinel 限流/熔断触发: {}", e.getMessage());
+        return ResponseEntity.status(429)
+                .body(Result.error(429, "系统繁忙，请稍后重试"));
+    }
+
+    // ── ⑤ 未知异常（兜底） ──
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<?>> handleUnknown(Exception e) {
         log.error("未捕获异常", e);

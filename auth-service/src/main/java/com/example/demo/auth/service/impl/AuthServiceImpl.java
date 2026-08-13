@@ -1,6 +1,7 @@
 package com.example.demo.auth.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.demo.auth.service.RbacService;
 import com.example.demo.common.JwtUtil;
 import com.example.demo.common.dto.LoginRequest;
 import com.example.demo.common.dto.RegisterRequest;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,6 +47,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Autowired
+    private RbacService rbacService;
+
     @Value("${admin.invite-code}")
     private String adminInviteCode;
 
@@ -72,6 +77,17 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(role);
         userMapper.insert(user);
 
+        // RBAC 集成：创建 sys_user 记录 + 分配角色
+        try {
+            var sysUser = rbacService.createSysUser(req.getUsername(),
+                    user.getPassword(), req.getEmail());
+            String roleCode = "admin".equals(role) ? "SUPER_ADMIN" : "STUDENT";
+            rbacService.assignRole(sysUser.getId(), roleCode);
+            log.info("[Auth] RBAC 用户创建成功: sysUserId={}, roleCode={}", sysUser.getId(), roleCode);
+        } catch (Exception e) {
+            log.warn("[Auth] RBAC 用户创建失败（不影响主流程）: {}", e.getMessage());
+        }
+
         log.info("[Auth] 用户注册成功: username={}, role={}, id={}", req.getUsername(), user.getRole(), user.getId());
 
         // 清除密码后返回
@@ -94,8 +110,17 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
-        // 生成 JWT（含角色信息）
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        // RBAC 集成：查询用户权限列表
+        List<String> permissions = null;
+        try {
+            permissions = rbacService.getUserPermissions(user.getId());
+        } catch (Exception e) {
+            log.warn("[Auth] RBAC 权限查询失败（降级为空权限）: {}", e.getMessage());
+        }
+
+        // 生成 JWT（含角色信息 + 学生ID + RBAC 权限）
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(),
+                user.getRole(), user.getStudentId(), permissions);
 
         // --- Redis 集成：存储活跃 Token ---
         // Key = token:active:{userId}, Value = Token 字符串, TTL = Token 剩余有效期
@@ -140,6 +165,7 @@ public class AuthServiceImpl implements AuthService {
         Long userId = jwtUtil.getUserIdFromToken(token);
         String username = jwtUtil.getUsernameFromToken(token);
         String role = jwtUtil.getRoleFromToken(token);
+        Long studentId = jwtUtil.getStudentIdFromToken(token);
 
         // 检查 Token 是否在黑名单中（已登出）
         String blacklistKey = "token:blacklist:" + token;
@@ -157,6 +183,7 @@ public class AuthServiceImpl implements AuthService {
         info.put("userId", userId);
         info.put("username", username);
         info.put("role", role);
+        info.put("studentId", studentId);
         info.put("isActiveInRedis", isActiveInRedis);
         info.put("tokenRemainingMs", jwtUtil.getRemainingTime(token));
 

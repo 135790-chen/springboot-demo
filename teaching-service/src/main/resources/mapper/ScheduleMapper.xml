@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.teaching.mapper.ScheduleMapper">
+
+    <!-- 排课结果视图（多表 JOIN） -->
+    <sql id="scheduleVO_columns">
+        s.schedule_id     AS scheduleId,
+        s.course_id       AS courseId,
+        c.course_name     AS courseName,
+        c.course_code     AS courseCode,
+        c.credit          AS credit,
+        s.teacher_id      AS teacherId,
+        t.teacher_name    AS teacherName,
+        s.classroom_id    AS classroomId,
+        cr.classroom_name AS classroomName,
+        cr.classroom_code AS classroomCode,
+        cr.classroom_type AS classroomType,
+        cr.capacity       AS capacity,
+        s.time_slot_id    AS timeSlotId,
+        ts.slot_name      AS slotName,
+        ts.day_of_week    AS dayOfWeek,
+        ts.start_period   AS startPeriod,
+        ts.end_period     AS endPeriod,
+        s.clazz_id        AS clazzId,
+        cl.class_name     AS className,
+        s.semester        AS semester,
+        s.week_start      AS weekStart,
+        s.week_end        AS weekEnd,
+        s.schedule_status AS scheduleStatus,
+        s.gmt_create      AS gmtCreate
+    </sql>
+
+    <sql id="scheduleVO_from">
+        edu_schedule s
+        LEFT JOIN edu_course    c  ON s.course_id    = c.course_id
+        LEFT JOIN edu_teacher   t  ON s.teacher_id   = t.teacher_id
+        LEFT JOIN edu_classroom cr ON s.classroom_id = cr.classroom_id
+        LEFT JOIN edu_time_slot ts ON s.time_slot_id = ts.slot_id
+        LEFT JOIN edu_class     cl ON s.clazz_id     = cl.class_id
+    </sql>
+
+    <sql id="scheduleVO_where">
+        WHERE s.schedule_deleted = 0
+        <if test="semester != null and semester != ''">
+            AND s.semester = #{semester}
+        </if>
+        <if test="clazzId != null">
+            AND s.clazz_id = #{clazzId}
+        </if>
+        <if test="teacherId != null">
+            AND s.teacher_id = #{teacherId}
+        </if>
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="selectPageVO" resultType="com.example.demo.vo.ScheduleVO">
+        SELECT <include refid="scheduleVO_columns"/>
+        FROM <include refid="scheduleVO_from"/>
+        <include refid="scheduleVO_where"/>
+        ORDER BY s.semester, ts.day_of_week, ts.start_period
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countVO" resultType="long">
+        SELECT COUNT(*)
+        FROM edu_schedule s
+        WHERE s.schedule_deleted = 0
+        <if test="semester != null and semester != ''">
+            AND s.semester = #{semester}
+        </if>
+        <if test="clazzId != null">
+            AND s.clazz_id = #{clazzId}
+        </if>
+        <if test="teacherId != null">
+            AND s.teacher_id = #{teacherId}
+        </if>
+    </select>
+
+    <!-- 按教师查课表 -->
+    <select id="selectByTeacher" resultType="com.example.demo.vo.ScheduleVO">
+        SELECT <include refid="scheduleVO_columns"/>
+        FROM <include refid="scheduleVO_from"/>
+        WHERE s.schedule_deleted = 0
+          AND s.teacher_id = #{teacherId}
+          AND s.semester = #{semester}
+        ORDER BY ts.day_of_week, ts.start_period
+    </select>
+
+    <!-- 按教室查课表 -->
+    <select id="selectByClassroom" resultType="com.example.demo.vo.ScheduleVO">
+        SELECT <include refid="scheduleVO_columns"/>
+        FROM <include refid="scheduleVO_from"/>
+        WHERE s.schedule_deleted = 0
+          AND s.classroom_id = #{classroomId}
+          AND s.semester = #{semester}
+        ORDER BY ts.day_of_week, ts.start_period
+    </select>
+
+    <!-- 按班级查课表 -->
+    <select id="selectByClass" resultType="com.example.demo.vo.ScheduleVO">
+        SELECT <include refid="scheduleVO_columns"/>
+        FROM <include refid="scheduleVO_from"/>
+        WHERE s.schedule_deleted = 0
+          AND s.clazz_id = #{clazzId}
+          AND s.semester = #{semester}
+        ORDER BY ts.day_of_week, ts.start_period
+    </select>
+
+    <!-- 查询某学期已有排课（用于约束检查） -->
+    <select id="selectBySemester" resultType="com.example.demo.entity.Schedule">
+        SELECT schedule_id       AS id,
+               course_id         AS courseId,
+               teacher_id        AS teacherId,
+               classroom_id      AS classroomId,
+               time_slot_id      AS timeSlotId,
+               clazz_id          AS clazzId,
+               semester          AS semester,
+               week_start        AS weekStart,
+               week_end          AS weekEnd,
+               schedule_status   AS scheduleStatus,
+               schedule_deleted  AS scheduleDeleted,
+               gmt_create        AS gmtCreate,
+               gmt_modified      AS gmtModified
+        FROM edu_schedule
+        WHERE semester = #{semester}
+          AND schedule_deleted = 0
+    </select>
+
+    <!-- 清空某学期排课 -->
+    <delete id="deleteBySemester">
+        UPDATE edu_schedule SET schedule_deleted = 1, gmt_modified = NOW()
+        WHERE semester = #{semester}
+    </delete>
+
+</mapper>

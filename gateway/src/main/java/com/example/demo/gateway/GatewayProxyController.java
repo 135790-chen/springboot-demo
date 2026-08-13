@@ -12,22 +12,24 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.Enumeration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 /**
  * API 网关代理 —— 通过 Nacos 服务发现转发到对应微服务
  * /auth/**    → auth-service
  * /students/** → student-service
- * /api/edu/** → student-service
+ * /api/edu/** → student-service（兜底）/ organization-service / teaching-service / statistics-service
  * /kafka/**   → message-service
  */
 @RestController
 public class GatewayProxyController {
+
+    private static final Logger log = LoggerFactory.getLogger(GatewayProxyController.class);
 
     @Configuration
     public static class RestTemplateConfig {
@@ -48,7 +50,7 @@ public class GatewayProxyController {
     }
 
     @Autowired
-    private RestTemplate restTemplate;
+    private GatewayProxyService proxyService;
 
     @Autowired
     private Knife4jConfig knife4jConfig;
@@ -64,22 +66,106 @@ public class GatewayProxyController {
 
     @RequestMapping(value = "/auth/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
     public ResponseEntity<?> proxyAuth(HttpServletRequest request, @RequestBody(required = false) String body) {
-        return proxy(request, body, "http://auth-service");
+        return proxyService.proxy(request, body, "http://auth-service");
     }
 
     @RequestMapping(value = "/students/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
     public ResponseEntity<?> proxyStudent(HttpServletRequest request, @RequestBody(required = false) String body) {
-        return proxy(request, body, "http://student-service");
+        return proxyService.proxy(request, body, "http://student-service");
     }
 
+    // ========== /api/edu/* 子路径分流 ==========
+    // 注意：Spring MVC 匹配更具体的 pattern 优先，这些必须写在 /api/edu/** 前面
+
+    @RequestMapping(value = "/api/edu/college/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduCollege(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://organization-service");
+    }
+
+    @RequestMapping(value = "/api/edu/major/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduMajor(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://organization-service");
+    }
+
+    @RequestMapping(value = "/api/edu/class/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduClass(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://organization-service");
+    }
+
+    @RequestMapping(value = "/api/edu/course/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduCourse(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/teacher/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduTeacher(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/student-course/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduEnrollment(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/graduation/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduGraduation(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/training-plan/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduTrainingPlan(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/stat/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduStat(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://statistics-service");
+    }
+
+    @RequestMapping(value = "/api/edu/classroom/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduClassroom(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/timeslot/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduTimeslot(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/api/edu/schedule/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyEduSchedule(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    // /api/edu/student/** 和其他未匹配的 /api/edu/** → student-service（兜底）
     @RequestMapping(value = "/api/edu/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
     public ResponseEntity<?> proxyEdu(HttpServletRequest request, @RequestBody(required = false) String body) {
-        return proxy(request, body, "http://student-service");
+        return proxyService.proxy(request, body, "http://student-service");
     }
 
     @RequestMapping(value = "/kafka/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
     public ResponseEntity<?> proxyKafka(HttpServletRequest request, @RequestBody(required = false) String body) {
-        return proxy(request, body, "http://message-service");
+        return proxyService.proxy(request, body, "http://message-service");
+    }
+
+    @RequestMapping(value = "/organization/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyOrganization(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://organization-service");
+    }
+
+    @RequestMapping(value = "/teaching/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyTeaching(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://teaching-service");
+    }
+
+    @RequestMapping(value = "/statistics/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyStatistics(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://statistics-service");
+    }
+
+    @RequestMapping(value = "/api/leader/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyLeader(HttpServletRequest request, @RequestBody(required = false) String body) {
+        return proxyService.proxy(request, body, "http://statistics-service");
     }
 
     // ========== Knife4j 文档聚合 ==========
@@ -129,82 +215,31 @@ public class GatewayProxyController {
 
     @RequestMapping(value = {"/v3/api-docs-auth", "/v3/api-docs-auth/**"})
     public ResponseEntity<?> proxyAuthDocs(HttpServletRequest request) {
-        return proxyDocs(request, "http://auth-service", "/v3/api-docs-auth");
+        return proxyService.proxyDocs(request, "http://auth-service", "/v3/api-docs-auth");
     }
 
     @RequestMapping(value = {"/v3/api-docs-student", "/v3/api-docs-student/**"})
     public ResponseEntity<?> proxyStudentDocs(HttpServletRequest request) {
-        return proxyDocs(request, "http://student-service", "/v3/api-docs-student");
+        return proxyService.proxyDocs(request, "http://student-service", "/v3/api-docs-student");
     }
 
     @RequestMapping(value = {"/v3/api-docs-message", "/v3/api-docs-message/**"})
     public ResponseEntity<?> proxyMessageDocs(HttpServletRequest request) {
-        return proxyDocs(request, "http://message-service", "/v3/api-docs-message");
+        return proxyService.proxyDocs(request, "http://message-service", "/v3/api-docs-message");
     }
 
-    private ResponseEntity<?> proxyDocs(HttpServletRequest request, String targetBase, String prefix) {
-        try {
-            String path = request.getRequestURI().replace(prefix, "/v3/api-docs");
-            if (request.getQueryString() != null) {
-                path += "?" + request.getQueryString();
-            }
-            return restTemplate.getForEntity(targetBase + path, String.class);
-        } catch (Exception e) {
-            return ResponseEntity.status(500)
-                    .body("{\"code\":500,\"message\":\"文档加载失败: " + e.getMessage() + "\"}");
-        }
+    @RequestMapping(value = {"/v3/api-docs-organization", "/v3/api-docs-organization/**"})
+    public ResponseEntity<?> proxyOrganizationDocs(HttpServletRequest request) {
+        return proxyService.proxyDocs(request, "http://organization-service", "/v3/api-docs-organization");
     }
 
-    private ResponseEntity<?> proxy(HttpServletRequest request, String body, String targetBase) {
-        String path = request.getRequestURI();
-        String query = request.getQueryString();
+    @RequestMapping(value = {"/v3/api-docs-teaching", "/v3/api-docs-teaching/**"})
+    public ResponseEntity<?> proxyTeachingDocs(HttpServletRequest request) {
+        return proxyService.proxyDocs(request, "http://teaching-service", "/v3/api-docs-teaching");
+    }
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(targetBase + path);
-        if (query != null) {
-            builder.query(query);
-        }
-        URI targetUrl = builder.build(true).toUri();
-
-        HttpHeaders headers = new HttpHeaders();
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String name = headerNames.nextElement();
-            String lower = name.toLowerCase();
-            if (!"host".equals(lower) && !"content-length".equals(lower) && !"transfer-encoding".equals(lower)) {
-                headers.add(name, request.getHeader(name));
-            }
-        }
-
-        // 如果 @RequestBody 没读到 body，从流中兜底读取
-        if (body == null && ("POST".equalsIgnoreCase(request.getMethod())
-                || "PUT".equalsIgnoreCase(request.getMethod())
-                || "PATCH".equalsIgnoreCase(request.getMethod()))) {
-            try {
-                var inputStream = request.getInputStream();
-                if (inputStream != null) {
-                    byte[] bytes = inputStream.readAllBytes();
-                    if (bytes.length > 0) {
-                        body = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-                    }
-                }
-            } catch (IOException ignored) {}
-        }
-
-        HttpMethod method = HttpMethod.valueOf(request.getMethod());
-        HttpEntity<String> entity = body != null ? new HttpEntity<>(body, headers) : new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> resp = restTemplate.exchange(targetUrl, method, entity, String.class);
-            // 确保错误响应也正常返回给前端
-            return ResponseEntity.status(resp.getStatusCode())
-                    .headers(resp.getHeaders())
-                    .body(resp.getBody());
-        } catch (Exception e) {
-            HttpHeaders errHeaders = new HttpHeaders();
-            errHeaders.setContentType(MediaType.APPLICATION_JSON);
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .headers(errHeaders)
-                    .body("{\"code\":502,\"message\":\"网关转发失败[" + targetBase + "]: " + e.getMessage() + "\"}");
-        }
+    @RequestMapping(value = {"/v3/api-docs-statistics", "/v3/api-docs-statistics/**"})
+    public ResponseEntity<?> proxyStatisticsDocs(HttpServletRequest request) {
+        return proxyService.proxyDocs(request, "http://statistics-service", "/v3/api-docs-statistics");
     }
 }

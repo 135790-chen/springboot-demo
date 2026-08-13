@@ -19,6 +19,15 @@
             <groupId>com.example</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <!-- Redis（分布式限流 + 选课库存） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
         <!-- 数据库 -->
         <dependency>
             <groupId>com.baomidou</groupId>

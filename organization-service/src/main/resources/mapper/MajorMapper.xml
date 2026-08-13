@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.organization.mapper.MajorMapper">
+
+    <!-- 分页查询专业 + 学院名（LEFT JOIN） -->
+    <select id="selectMajorVOPage" resultType="com.example.demo.vo.MajorVO">
+        SELECT m.major_id       AS id,
+               m.major_name     AS majorName,
+               m.major_code     AS majorCode,
+               m.college_id     AS collegeId,
+               c.college_name   AS collegeName,
+               m.major_status   AS majorStatus,
+               m.major_remark   AS majorRemark,
+               m.gmt_create     AS gmtCreate,
+               m.gmt_modified   AS gmtModified
+        FROM edu_major m
+                 LEFT JOIN edu_college c
+                           ON m.college_id = c.college_id AND c.college_deleted = 0
+        WHERE m.major_deleted = 0
+        <if test="majorName != null and majorName != ''">
+            AND m.major_name LIKE CONCAT('%', #{majorName}, '%')
+        </if>
+        <if test="majorCode != null and majorCode != ''">
+            AND m.major_code LIKE CONCAT('%', #{majorCode}, '%')
+        </if>
+        <if test="collegeId != null">
+            AND m.college_id = #{collegeId}
+        </if>
+        <if test="majorStatus != null">
+            AND m.major_status = #{majorStatus}
+        </if>
+        ORDER BY m.major_code
+    </select>
+
+    <!-- 查询单个专业详情 + 学院名 -->
+    <select id="selectMajorVOById" resultType="com.example.demo.vo.MajorVO">
+        SELECT m.major_id       AS id,
+               m.major_name     AS majorName,
+               m.major_code     AS majorCode,
+               m.college_id     AS collegeId,
+               c.college_name   AS collegeName,
+               m.major_status   AS majorStatus,
+               m.major_remark   AS majorRemark,
+               m.gmt_create     AS gmtCreate,
+               m.gmt_modified   AS gmtModified
+        FROM edu_major m
+                 LEFT JOIN edu_college c
+                           ON m.college_id = c.college_id AND c.college_deleted = 0
+        WHERE m.major_id = #{majorId}
+          AND m.major_deleted = 0
+    </select>
+
+</mapper>

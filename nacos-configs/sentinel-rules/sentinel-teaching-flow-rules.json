@@ -1,0 +1,10 @@
+[
+  {
+    "resource": "seckillCourse",
+    "grade": 1,
+    "count": 5000,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  }
+]

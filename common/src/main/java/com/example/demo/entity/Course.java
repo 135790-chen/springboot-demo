@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -34,6 +35,10 @@ public class Course {
     @TableField("course_hours")
     private Integer courseHours;
 
+    /** 课程最大容量 */
+    @TableField("max_students")
+    private Integer maxStudents;
+
     /** 课程类型：required-必修 elective-选修 */
     @TableField("course_type")
     private String courseType;
@@ -57,10 +62,10 @@ public class Course {
     private String courseRemark;
 
     /** 创建时间 */
-    @TableField("gmt_create")
+    @TableField(value = "gmt_create", fill = FieldFill.INSERT)
     private LocalDateTime gmtCreate;
 
     /** 更新时间 */
-    @TableField("gmt_modified")
+    @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime gmtModified;
 }

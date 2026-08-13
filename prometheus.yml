@@ -1,0 +1,73 @@
+# ===================================================
+# Prometheus 配置 — 抓取 Spring Boot 服务指标
+# ===================================================
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# 告警规则文件
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# 抓取目标
+scrape_configs:
+  # 网关服务
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway:8080']
+        labels:
+          service: 'gateway'
+
+  # 认证服务
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8081']
+        labels:
+          service: 'auth-service'
+
+  # 学生服务
+  - job_name: 'student-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['student-service:8082']
+        labels:
+          service: 'student-service'
+
+  # 消息服务
+  - job_name: 'message-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['message-service:8083']
+        labels:
+          service: 'message-service'
+
+  # 组织架构服务
+  - job_name: 'organization-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['organization-service:8084']
+        labels:
+          service: 'organization-service'
+
+  # 教学服务
+  - job_name: 'teaching-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['teaching-service:8085']
+        labels:
+          service: 'teaching-service'
+
+  # 统计服务
+  - job_name: 'statistics-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['statistics-service:8086']
+        labels:
+          service: 'statistics-service'
+
+  # Prometheus 自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

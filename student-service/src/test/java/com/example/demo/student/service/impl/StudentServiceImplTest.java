@@ -3,8 +3,10 @@ package com.example.demo.student.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.demo.common.exception.DuplicateStudentException;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.entity.Student;
 import com.example.demo.student.mapper.StudentMapper;
+import com.example.demo.vo.StudentVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +19,7 @@ import static org.mockito.Mockito.*;
 /**
  * StudentServiceImpl 单元测试
  * <p>
- * 测试核心增删改查逻辑，mock StudentMapper。
+ * 测试核心增删改查逻辑，mock StudentMapper + ClazzMapper。
  */
 class StudentServiceImplTest {
 
@@ -143,6 +145,96 @@ class StudentServiceImplTest {
         when(mapper.deleteById(999L)).thenReturn(0);
 
         assertFalse(service.deleteStudent(999L));
+    }
+
+    // ── 按ID查询 ──
+
+    @Test
+    void getStudentById_exists_returnsStudent() {
+        Student s = buildStudent(1L, "张三", "大一");
+        when(mapper.selectById(1L)).thenReturn(s);
+
+        Student result = service.getStudentById(1L);
+
+        assertNotNull(result);
+        assertEquals("张三", result.getStudentName());
+    }
+
+    @Test
+    void getStudentById_notExists_returnsNull() {
+        when(mapper.selectById(999L)).thenReturn(null);
+        assertNull(service.getStudentById(999L));
+    }
+
+    // ── 全量查询 ──
+
+    @Test
+    void getAllStudents_returnsList() {
+        Student s1 = buildStudent(1L, "张三", "大一");
+        Student s2 = buildStudent(2L, "李四", "大二");
+        when(mapper.selectList(isNull())).thenReturn(List.of(s1, s2));
+
+        List<Student> result = service.getAllStudents();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void getAllStudents_empty_returnsEmptyList() {
+        when(mapper.selectList(isNull())).thenReturn(List.of());
+
+        List<Student> result = service.getAllStudents();
+
+        assertTrue(result.isEmpty());
+    }
+
+    // ── 分页查询 ──
+
+    @Test
+    void getStudentsByPage_returnsPage() {
+        Page<Student> mockPage = new Page<>(1, 10);
+        mockPage.setRecords(List.of(buildStudent(1L, "张三", "大一")));
+        when(mapper.selectPage(any(Page.class), isNull())).thenReturn(mockPage);
+
+        Page<Student> result = service.getStudentsByPage(1, 10);
+
+        assertEquals(1, result.getRecords().size());
+    }
+
+    // ── VO 分页查询 ──
+
+    @Test
+    void getStudentPage_returnsVOPage() {
+        Page<StudentVO> mockPage = new Page<>(1, 10);
+        StudentVO vo = new StudentVO();
+        vo.setStudentId(1L);
+        vo.setStudentName("张三");
+        vo.setClassName("计算机科学2026");
+        mockPage.setRecords(List.of(vo));
+        when(mapper.selectStudentVOPage(any(Page.class), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mockPage);
+
+        Page<StudentVO> result = service.getStudentPage(1, 10, null, "张三", null, null, null, null, null);
+
+        assertEquals(1, result.getRecords().size());
+        assertEquals("计算机科学2026", result.getRecords().get(0).getClassName());
+    }
+
+    // ── VO 按ID查询 ──
+
+    @Test
+    void getStudentVOById_exists_returnsVO() {
+        StudentVO vo = new StudentVO();
+        vo.setStudentId(1L);
+        vo.setStudentName("张三");
+        vo.setClassName("计算机科学2026");
+        when(mapper.selectStudentVOById(1L)).thenReturn(vo);
+
+        StudentVO result = service.getStudentVOById(1L);
+
+        assertNotNull(result);
+        assertEquals("张三", result.getStudentName());
+        assertEquals("计算机科学2026", result.getClassName());
     }
 
     // ── 工具方法 ──

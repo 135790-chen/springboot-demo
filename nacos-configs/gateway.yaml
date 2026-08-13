@@ -4,6 +4,31 @@ knife4j:
     language: zh_cn
     enable-security: true
 
+spring:
+  cloud:
+    sentinel:
+      datasource:
+        ds-gateway-flow:
+          nacos:
+            server-addr: ${NACOS_SERVICE_HOST:localhost}:${NACOS_SERVICE_PORT:8848}
+            namespace: ${NACOS_NAMESPACE:local-dev}
+            username: ${NACOS_SERVICE_USERNAME:nacos}
+            password: ${NACOS_SERVICE_PASSWORD:nacos}
+            group-id: SENTINEL_GROUP
+            data-id: sentinel-gateway-flow-rules.json
+            data-type: json
+            rule-type: flow
+        ds-gateway-degrade:
+          nacos:
+            server-addr: ${NACOS_SERVICE_HOST:localhost}:${NACOS_SERVICE_PORT:8848}
+            namespace: ${NACOS_NAMESPACE:local-dev}
+            username: ${NACOS_SERVICE_USERNAME:nacos}
+            password: ${NACOS_SERVICE_PASSWORD:nacos}
+            group-id: SENTINEL_GROUP
+            data-id: sentinel-gateway-degrade-rules.json
+            data-type: json
+            rule-type: degrade
+
 springdoc:
   swagger-ui:
     urls:
@@ -13,3 +38,9 @@ springdoc:
         url: /v3/api-docs-student
       - name: 消息服务
         url: /v3/api-docs-message
+      - name: 组织架构服务
+        url: /v3/api-docs-organization
+      - name: 教学服务
+        url: /v3/api-docs-teaching
+      - name: 统计服务
+        url: /v3/api-docs-statistics

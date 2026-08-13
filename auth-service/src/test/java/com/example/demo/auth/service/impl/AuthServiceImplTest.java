@@ -18,7 +18,8 @@ import static org.mockito.Mockito.*;
  * AuthServiceImpl 单元测试
  * <p>
  * 使用真实 JwtUtil、BCryptPasswordEncoder；仅 mock 接口（UserMapper）。
- * 重点验证注册逻辑（加密、角色判定、重复检测）和登录密码校验。
+ * Redis/StringRedisTemplate 在 Java 25 下无法 Mockito mock，因此 login/logout/getCurrentUser/deleteAccount
+ * 中涉及 Redis 的逻辑仅在集成测试中覆盖。
  */
 class AuthServiceImplTest {
 
@@ -41,7 +42,7 @@ class AuthServiceImplTest {
         setField("jwtUtil", jwtUtil);
         setField("passwordEncoder", passwordEncoder);
         setField("adminInviteCode", "admin888");
-        // redisTemplate 保持 null —— 本次测试不涉及 Redis 的方法
+        // redisTemplate 保持 null —— Java 25 下无法 Mockito mock StringRedisTemplate
     }
 
     private void setField(String name, Object value) throws Exception {
@@ -55,11 +56,10 @@ class AuthServiceImplTest {
     @Test
     void register_newUser_passwordEncrypted() {
         when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
-        // 在 thenAnswer 里捕获 insert 时的密码值（register 返回前会 setPassword(null)，所以不能事后取）
         final String[] savedPasswordHolder = new String[1];
         when(userMapper.insert(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
-            savedPasswordHolder[0] = u.getPassword();  // 在密码被清除前保存
+            savedPasswordHolder[0] = u.getPassword();
             u.setId(1L);
             return 1;
         });
@@ -72,7 +72,6 @@ class AuthServiceImplTest {
         assertEquals("student", result.getRole(), "未传邀请码 → 默认学生");
         assertNull(result.getPassword(), "返回给前端的 user 不能含密码");
 
-        // 验证存库的密码是加密后的
         String savedPassword = savedPasswordHolder[0];
         assertNotNull(savedPassword, "insert 时密码不应为空");
         assertNotEquals("123456", savedPassword, "存库密码必须是密文");
@@ -130,7 +129,6 @@ class AuthServiceImplTest {
 
     @Test
     void login_wrongPassword_throwsException() {
-        // 先注册一个用户，拿加密后的密码
         User dbUser = new User();
         dbUser.setId(1L);
         dbUser.setUsername("test");
@@ -158,8 +156,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void login_correctPassword_returnsValidToken() {
-        // 先准备一个数据库用户
+    void login_correctPassword_passesValidationThenNpeOnRedis() {
         User dbUser = new User();
         dbUser.setId(7L);
         dbUser.setUsername("demo");
@@ -168,15 +165,12 @@ class AuthServiceImplTest {
 
         when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(dbUser);
 
-        // 登录成功需要调用 Redis 存活跃 token，但 redisTemplate 为 null 会 NPE。
-        // 验证点：1) 密码匹配通过  2) 到了生成 JWT 这一步就说明密码校验成功。
-        // 因无法 mock 类（Java 25 ByteBuddy 限制），此处只验证密码校验链路。
-        // 实际效果：不抛异常走到 redisTemplate 调用处 → 说明 selectOne + passwordEncoder.matches 都正确。
+        // redisTemplate 为 null，密码校验通过后会 NPE
+        // 验证：密码匹配通过 → 走到 redisTemplate 调用处 → 说明 selectOne + passwordEncoder.matches 正确
         try {
             service.login(buildLoginReq("demo", "123456"));
         } catch (NullPointerException e) {
-            // 预期行为：密码校验通过后调用 redisTemplate.opsForValue() 时 NPE
-            // 这说明 register 流程中 username 查询 + 密码匹配 都工作正常
+            // 预期：密码校验通过后 redisTemplate.opsForValue() NPE
             assertTrue(e.getMessage() == null || e.getMessage().contains("redisTemplate")
                     || e.getMessage().contains("StringRedisTemplate"),
                     "NPE 应来自缺少 Redis，不是其他逻辑错误");

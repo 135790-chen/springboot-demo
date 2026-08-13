@@ -3,9 +3,7 @@ package com.example.demo.student.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.example.demo.entity.Clazz;
 import com.example.demo.entity.Student;
-import com.example.demo.student.mapper.ClazzMapper;
 import com.example.demo.student.mapper.StudentMapper;
 import com.example.demo.common.exception.DuplicateStudentException;
 import com.example.demo.student.service.StudentService;
@@ -23,7 +21,7 @@ import java.util.List;
  * 学生业务逻辑层实现（ServiceImpl）
  *
  * 单表查询：MyBatis-Plus LambdaQueryWrapper
- * 多表查询：Mapper @Select LEFT JOIN → VO
+ * 多表查询：Mapper XML LEFT JOIN → VO
  */
 @Service
 public class StudentServiceImpl implements StudentService {
@@ -32,9 +30,6 @@ public class StudentServiceImpl implements StudentService {
 
     @Autowired
     private StudentMapper studentMapper;
-
-    @Autowired
-    private ClazzMapper clazzMapper;
 
     @Override
     @Transactional
@@ -104,10 +99,12 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Page<StudentVO> getStudentPage(int page, int size, String studentNo, String studentName,
-                                           Long classId, Integer gender, Integer studentStatus) {
+                                           Long classId, Integer gender, Integer studentStatus,
+                                           String grade, String className) {
         // 直接调 Mapper LEFT JOIN 查询，一条 SQL 搞定
         return studentMapper.selectStudentVOPage(
-                new Page<>(page, size), studentNo, studentName, classId, gender, studentStatus);
+                new Page<>(page, size), studentNo, studentName, classId, gender, studentStatus,
+                grade, className);
     }
 
     @Override

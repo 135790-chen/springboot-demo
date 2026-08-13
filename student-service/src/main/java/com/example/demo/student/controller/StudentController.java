@@ -2,6 +2,7 @@ package com.example.demo.student.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.Result;
+import com.example.demo.common.annotation.RequirePermission;
 import com.example.demo.entity.Student;
 import com.example.demo.student.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +23,7 @@ public class StudentController {
     private StudentService studentService;
 
     @Operation(summary = "查询所有学生")
+    @RequirePermission("student:view")
     @GetMapping
     public Result<List<Student>> list() {
         List<Student> students = studentService.getAllStudents();
@@ -29,6 +31,7 @@ public class StudentController {
     }
 
     @Operation(summary = "分页查询学生")
+    @RequirePermission("student:view")
     @GetMapping("/page")
     public Result<Map<String, Object>> listByPage(
             @RequestParam(defaultValue = "1") int page,
@@ -43,6 +46,7 @@ public class StudentController {
     }
 
     @Operation(summary = "根据 ID 查询学生")
+    @RequirePermission("student:view")
     @GetMapping("/{id}")
     public Result<Student> getById(@PathVariable Long id) {
         Student student = studentService.getStudentById(id);
@@ -53,12 +57,14 @@ public class StudentController {
     }
 
     @Operation(summary = "新增学生")
+    @RequirePermission("student:manage")
     @PostMapping
     public Result<Student> add(@Valid @RequestBody Student student) {
         return Result.success(studentService.addStudent(student));
     }
 
     @Operation(summary = "更新学生", description = "必须提供学生 ID")
+    @RequirePermission("student:manage")
     @PutMapping
     public Result<String> update(@RequestBody Student student) {
         if (student.getId() == null) {
@@ -69,6 +75,7 @@ public class StudentController {
     }
 
     @Operation(summary = "删除学生")
+    @RequirePermission("student:manage")
     @DeleteMapping("/{id}")
     public Result<String> delete(@PathVariable Long id) {
         boolean success = studentService.deleteStudent(id);
@@ -76,6 +83,7 @@ public class StudentController {
     }
 
     @Operation(summary = "按年级筛选学生")
+    @RequirePermission("student:view")
     @GetMapping("/grade/{grade}")
     public Result<List<Student>> listByGrade(@PathVariable String grade) {
         List<Student> students = studentService.getStudentsByGrade(grade);
@@ -83,6 +91,7 @@ public class StudentController {
     }
 
     @Operation(summary = "按姓名模糊搜索")
+    @RequirePermission("student:view")
     @GetMapping("/search")
     public Result<List<Student>> search(@RequestParam String keyword) {
         List<Student> students = studentService.searchStudentsByName(keyword);

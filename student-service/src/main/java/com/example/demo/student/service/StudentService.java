@@ -57,7 +57,8 @@ public interface StudentService {
      * 分页查询学生（关联班级，返回 VO）
      */
     Page<StudentVO> getStudentPage(int page, int size, String studentNo, String studentName,
-                                   Long classId, Integer gender, Integer studentStatus);
+                                   Long classId, Integer gender, Integer studentStatus,
+                                   String grade, String className);
 
     /**
      * 查询学生详情（关联班级，返回 VO）

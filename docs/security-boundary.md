@@ -31,6 +31,54 @@
 | POST /kafka/receive-student | **否** | 无 | 无 | 中 | **未受 JWT 保护**，数据注入 | WebConfig 中 /kafka/** 放行；@Valid 校验；邮箱去重；Kafka 发送失败降级日志 | 不带 Token 直接调，期望不 401（当前设计如此） |
 | GET /kafka/status | **否** | 无 | 无 | 无 | 信息泄露 | 仅返回 Kafka 状态，不暴露敏感信息 | 访问 /kafka/status，期望只有 "Kafka 已连接" |
 
+### 组织架构服务
+
+| 接口 | 登录状态 | 权限 | 数据归属 | 注入风险 | 风险类型 | 处理逻辑 | 验证方式 |
+|------|---------|------|---------|---------|---------|---------|---------|
+| GET /api/edu/school | 是 | school:view | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token；权限注解校验 school:view | 不带 Token 调，期望 401 |
+| POST /api/edu/school | 是 | school:manage | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 school:manage 权限 | 无权限 Token 调新增，期望 403 |
+| PUT /api/edu/school | 是 | school:manage | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 school:manage 权限 | 无权限 Token 调修改，期望 403 |
+| DELETE /api/edu/school/{id} | 是 | school:manage | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 school:manage 权限 | 无权限 Token 调删除，期望 403 |
+| GET /api/edu/college | 是 | college:view | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token；权限注解校验 college:view | 不带 Token 调，期望 401 |
+| POST /api/edu/college | 是 | college:manage | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 college:manage 权限 | 无权限 Token 调新增，期望 403 |
+| PUT /api/edu/college | 是 | college:manage | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 college:manage 权限 | 无权限 Token 调修改，期望 403 |
+| DELETE /api/edu/college/{id} | 是 | college:manage | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 college:manage 权限 | 无权限 Token 调删除，期望 403 |
+| GET /api/edu/major | 是 | major:view | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token；权限注解校验 major:view | 不带 Token 调，期望 401 |
+| POST /api/edu/major | 是 | major:manage | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 major:manage 权限 | 无权限 Token 调新增，期望 403 |
+| PUT /api/edu/major | 是 | major:manage | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 major:manage 权限 | 无权限 Token 调修改，期望 403 |
+| DELETE /api/edu/major/{id} | 是 | major:manage | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 major:manage 权限 | 无权限 Token 调删除，期望 403 |
+| GET /api/edu/class | 是 | class:view | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token；权限注解校验 class:view | 不带 Token 调，期望 401 |
+| POST /api/edu/class | 是 | class:manage | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 class:manage 权限 | 无权限 Token 调新增，期望 403 |
+| PUT /api/edu/class | 是 | class:manage | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 class:manage 权限 | 无权限 Token 调修改，期望 403 |
+| DELETE /api/edu/class/{id} | 是 | class:manage | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 class:manage 权限 | 无权限 Token 调删除，期望 403 |
+
+### 教学服务
+
+| 接口 | 登录状态 | 权限 | 数据归属 | 注入风险 | 风险类型 | 处理逻辑 | 验证方式 |
+|------|---------|------|---------|---------|---------|---------|---------|
+| GET /api/edu/course | 是 | 所有人 | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token；角色隔离（admin 全量，student 受限） | 不带 Token 调，期望 401 |
+| POST /api/edu/course | 是 | admin | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 role=admin | 学生 Token 调新增，期望 403 |
+| PUT /api/edu/course | 是 | admin | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 role=admin | 学生 Token 调修改，期望 403 |
+| DELETE /api/edu/course/{id} | 是 | admin | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 role=admin | 学生 Token 调删除，期望 403 |
+| GET /api/edu/teacher | 是 | 所有人 | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token | 不带 Token 调，期望 401 |
+| POST /api/edu/teacher | 是 | admin | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 role=admin | 学生 Token 调新增，期望 403 |
+| PUT /api/edu/teacher | 是 | admin | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 role=admin | 学生 Token 调修改，期望 403 |
+| DELETE /api/edu/teacher/{id} | 是 | admin | 无 | 低 | 越权删除 | JwtInterceptor: DELETE→校验 role=admin | 学生 Token 调删除，期望 403 |
+| GET /api/edu/student-course | 是 | 自己/所有人 | 角色隔离 | 低 | 越权查看他人选课 | admin 可看全部；学生只能看自己的选课记录 | 学生 Token 查看他人选课，期望空结果 |
+| POST /api/edu/student-course/seckill | 是 | 所有人 | 自己 | 中 | 并发超卖 | Redis Lua 原子预扣 + Kafka 异步削峰 | 1000 并发抢 100 名额，期望不超卖 |
+| GET /api/edu/training-plan | 是 | 所有人 | 所有人可见 | 低 | ID 越权遍历 | JwtInterceptor 校验 Token | 不带 Token 调，期望 401 |
+| POST /api/edu/training-plan | 是 | admin | 无 | 低 | 越权新增 | JwtInterceptor: POST→校验 role=admin | 学生 Token 调新增，期望 403 |
+| PUT /api/edu/training-plan | 是 | admin | 无 | 低 | 越权修改 | JwtInterceptor: PUT→校验 role=admin | 学生 Token 调修改，期望 403 |
+| GET /api/edu/graduation | 是 | 自己/所有人 | 角色隔离 | 低 | 越权查看他人审核结果 | admin 可看全部；学生只能看自己的毕业审核 | 学生 Token 查看他人审核，期望空结果 |
+| POST /api/edu/graduation/audit | 是 | admin | 无 | 低 | 越权审核 | JwtInterceptor: POST→校验 role=admin | 学生 Token 调审核，期望 403 |
+
+### 统计服务
+
+| 接口 | 登录状态 | 权限 | 数据归属 | 注入风险 | 风险类型 | 处理逻辑 | 验证方式 |
+|------|---------|------|---------|---------|---------|---------|---------|
+| GET /api/edu/stat | 是 | stat:view | 聚合数据 | 低 | 未授权访问统计 | JwtInterceptor 校验 Token；权限注解校验 stat:view | 不带 Token 调，期望 401 |
+| GET /api/leader/dashboard | 是 | dashboard:view | 聚合数据 | 低 | 越权查看驾驶舱 | JwtInterceptor 校验 Token；权限注解校验 dashboard:view（通常仅 admin/领导角色） | 学生 Token 调驾驶舱，期望 403 |
+
 ---
 
 ## 二、公共安全机制

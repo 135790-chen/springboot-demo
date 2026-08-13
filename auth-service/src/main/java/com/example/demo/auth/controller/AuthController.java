@@ -1,6 +1,7 @@
 package com.example.demo.auth.controller;
 
 import com.example.demo.common.Result;
+import com.example.demo.common.annotation.RateLimit;
 import com.example.demo.common.dto.LoginRequest;
 import com.example.demo.common.dto.RegisterRequest;
 import com.example.demo.entity.User;
@@ -21,6 +22,7 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @RateLimit(seconds = 3)
     @Operation(summary = "用户注册")
     @PostMapping("/register")
     public Result<User> register(@Valid @RequestBody RegisterRequest req) {
@@ -28,6 +30,7 @@ public class AuthController {
         return Result.success(user);
     }
 
+    @RateLimit(seconds = 1)
     @Operation(summary = "用户登录", description = "返回 JWT Token")
     @PostMapping("/login")
     public Result<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {

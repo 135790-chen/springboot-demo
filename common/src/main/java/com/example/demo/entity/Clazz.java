@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -26,10 +27,22 @@ public class Clazz {
     @NotBlank(message = "班级编码不能为空")
     private String classCode;
 
+    /** 学院ID */
+    @TableField("college_id")
+    private Long collegeId;
+
+    /** 专业ID */
+    @TableField("major_id")
+    private Long majorId;
+
+    /** 辅导员ID（关联 sys_counselor） */
+    @TableField("counselor_id")
+    private Long counselorId;
+
     /** 年级（如：2026级） */
     private String grade;
 
-    /** 专业 */
+    /** 专业（冗余展示字段） */
     private String major;
 
     /** 显示顺序 */
@@ -49,10 +62,10 @@ public class Clazz {
     private String classRemark;
 
     /** 创建时间 */
-    @TableField("gmt_create")
+    @TableField(value = "gmt_create", fill = FieldFill.INSERT)
     private LocalDateTime gmtCreate;
 
     /** 更新时间 */
-    @TableField("gmt_modified")
+    @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime gmtModified;
 }

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.teaching.mapper.TrainingPlanMapper">
+
+    <select id="selectByMajorAndGrade" resultType="com.example.demo.entity.TrainingPlan">
+        SELECT plan_id                     AS id,
+               plan_name                   AS planName,
+               major_id                    AS majorId,
+               grade,
+               version,
+               total_required_credits      AS totalRequiredCredits,
+               major_elective_min_credits  AS majorElectiveMinCredits,
+               general_elective_min_credits AS generalElectiveMinCredits,
+               plan_status                 AS planStatus,
+               plan_deleted                AS planDeleted,
+               plan_remark                 AS planRemark,
+               gmt_create                  AS gmtCreate,
+               gmt_modified                AS gmtModified
+        FROM edu_training_plan
+        WHERE major_id = #{majorId}
+          AND grade = #{grade}
+          AND plan_status = 1
+          AND plan_deleted = 0
+        ORDER BY version DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectTrainingPlanVOPage" resultType="com.example.demo.vo.TrainingPlanVO">
+        SELECT p.plan_id                      AS id,
+               p.plan_name                    AS planName,
+               p.major_id                     AS majorId,
+               m.major_name                   AS majorName,
+               p.grade,
+               p.version,
+               p.total_required_credits       AS totalRequiredCredits,
+               p.major_elective_min_credits   AS majorElectiveMinCredits,
+               p.general_elective_min_credits AS generalElectiveMinCredits,
+               p.plan_status                  AS planStatus,
+               p.plan_remark                  AS planRemark,
+               p.gmt_create                   AS gmtCreate,
+               p.gmt_modified                 AS gmtModified
+        FROM edu_training_plan p
+                 LEFT JOIN edu_major m
+                           ON p.major_id = m.major_id AND m.major_deleted = 0
+        WHERE p.plan_deleted = 0
+        <if test="majorId != null">
+            AND p.major_id = #{majorId}
+        </if>
+        <if test="grade != null and grade != ''">
+            AND p.grade = #{grade}
+        </if>
+        <if test="planStatus != null">
+            AND p.plan_status = #{planStatus}
+        </if>
+        ORDER BY p.major_id, p.grade DESC, p.version DESC
+    </select>
+
+    <select id="selectTrainingPlanVOById" resultType="com.example.demo.vo.TrainingPlanVO">
+        SELECT p.plan_id                      AS id,
+               p.plan_name                    AS planName,
+               p.major_id                     AS majorId,
+               m.major_name                   AS majorName,
+               p.grade,
+               p.version,
+               p.total_required_credits       AS totalRequiredCredits,
+               p.major_elective_min_credits   AS majorElectiveMinCredits,
+               p.general_elective_min_credits AS generalElectiveMinCredits,
+               p.plan_status                  AS planStatus,
+               p.plan_remark                  AS planRemark,
+               p.gmt_create                   AS gmtCreate,
+               p.gmt_modified                 AS gmtModified
+        FROM edu_training_plan p
+                 LEFT JOIN edu_major m
+                           ON p.major_id = m.major_id AND m.major_deleted = 0
+        WHERE p.plan_id = #{planId}
+          AND p.plan_deleted = 0
+    </select>
+
+</mapper>

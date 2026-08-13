@@ -1,0 +1,50 @@
+[
+  {
+    "resource": "gateway_proxy",
+    "grade": 1,
+    "count": 500,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  },
+  {
+    "resource": "/auth/login",
+    "grade": 1,
+    "count": 10,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  },
+  {
+    "resource": "/auth/register",
+    "grade": 1,
+    "count": 5,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  },
+  {
+    "resource": "/students/*",
+    "grade": 1,
+    "count": 200,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  },
+  {
+    "resource": "/api/edu/course/*",
+    "grade": 1,
+    "count": 300,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  },
+  {
+    "resource": "/api/edu/student-course/seckill",
+    "grade": 1,
+    "count": 5000,
+    "limitApp": "default",
+    "strategy": 0,
+    "controlBehavior": 0
+  }
+]

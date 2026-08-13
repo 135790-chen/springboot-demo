@@ -1,5 +1,6 @@
 package com.example.demo.message.config;
 
+import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +19,7 @@ public class EmbeddedKafkaConfig {
         log.info("[EmbeddedKafka] 正在启动内嵌 Kafka Broker...");
         try {
             EmbeddedKafkaKraftBroker broker = new EmbeddedKafkaKraftBroker(1, 9092);
+            broker.brokerProperty("auto.create.topics.enable", "true");
             broker.afterPropertiesSet();
             log.info("[EmbeddedKafka] 内嵌 Kafka Broker 启动成功！端口: localhost:9092 | KRaft 模式");
             log.info("[EmbeddedKafka] 完整消息链路已就绪: Producer → Topic → Consumer");
@@ -27,5 +29,10 @@ public class EmbeddedKafkaConfig {
             log.warn("[EmbeddedKafka] 应用正常启动，Kafka 功能暂时不可用");
             return null;
         }
+    }
+
+    @Bean
+    public NewTopic enrollmentTopic() {
+        return new NewTopic("enrollment-topic", 1, (short) 1);
     }
 }
